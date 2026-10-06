@@ -14,11 +14,267 @@
       </div>
     </div>
   </div>
-  <br>
 
-  <div class="card">
-    <div class="card-body text-muted">
-      Dashboard
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Total Income</div>
+          <div class="h1 mb-0 text-success">₱{{ total_income|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Total Expenses</div>
+          <div class="h1 mb-0 text-danger">₱{{ total_expenses|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Balance</div>
+          <div class="h1 mb-0 {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">₱{{ balance|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Savings Goals</div>
+          <div class="h1 mb-0">{{ savings_goals|length }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Quick Add Income</h3>
+        </div>
+        <div class="card-body">
+          <form method="post" class="row g-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_income">
+            <div class="col-6">
+              <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
+            </div>
+            <div class="col-6">
+              <select name="source" class="form-select">
+                <option value="allowance">Allowance</option>
+                <option value="part_time">Part-time Job</option>
+                <option value="gift">Gift</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-8">
+              <input type="text" name="description" class="form-control" placeholder="Description">
+            </div>
+            <div class="col-4">
+              <input type="date" name="date" class="form-control" value="{% now 'Y-m-d' %}" required>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary w-100">Add Income</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Quick Add Expense</h3>
+        </div>
+        <div class="card-body">
+          <form method="post" class="row g-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_expense">
+            <div class="col-6">
+              <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
+            </div>
+            <div class="col-6">
+              <select name="category" class="form-select">
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% empty %}
+                <option value="">No categories</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-8">
+              <input type="text" name="description" class="form-control" placeholder="Description">
+            </div>
+            <div class="col-4">
+              <input type="date" name="date" class="form-control" value="{% now 'Y-m-d' %}" required>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-danger w-100">Add Expense</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Recent Expenses</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for expense in recent_expenses %}
+              <tr>
+                <td>{{ expense.date }}</td>
+                <td>{{ expense.category|default:"-" }}</td>
+                <td>{{ expense.description|default:"-" }}</td>
+                <td class="text-end">₱{{ expense.amount|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted">No expenses yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Recent Income</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Source</th>
+                <th>Description</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for income in recent_incomes %}
+              <tr>
+                <td>{{ income.date }}</td>
+                <td>{{ income.get_source_display }}</td>
+                <td>{{ income.description|default:"-" }}</td>
+                <td class="text-end">₱{{ income.amount|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted">No income yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Grocery / Food List</h3>
+        </div>
+        <div class="card-body">
+          <form method="post" class="row g-2 mb-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_grocery">
+            <div class="col-6">
+              <input type="text" name="name" class="form-control" placeholder="Food item" required>
+            </div>
+            <div class="col-3">
+              <input type="number" name="quantity" class="form-control" placeholder="Qty" value="1" min="1">
+            </div>
+            <div class="col-3">
+              <input type="number" step="0.01" name="estimated_price" class="form-control" placeholder="Est. price">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-success w-100">Add to List</button>
+            </div>
+          </form>
+          <ul class="list-group list-group-flush">
+            {% for item in grocery_items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="toggle_grocery">
+                  <input type="hidden" name="id" value="{{ item.id }}">
+                  <button type="submit" class="btn btn-sm btn-link p-0">
+                    {% if item.is_purchased %}
+                    <i class="fas fa-check-square text-success"></i>
+                    {% else %}
+                    <i class="far fa-square"></i>
+                    {% endif %}
+                  </button>
+                </form>
+                <span class="{% if item.is_purchased %}text-muted text-decoration-line-through{% endif %}">
+                  {{ item.name }} ({{ item.quantity }})
+                </span>
+              </div>
+              <div>
+                <span class="me-2">₱{{ item.estimated_price|floatformat:2 }}</span>
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_grocery">
+                  <input type="hidden" name="id" value="{{ item.id }}">
+                  <button type="submit" class="btn btn-sm btn-link text-danger p-0">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">No items in your grocery list.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Budget Plans</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Month</th>
+                <th class="text-end">Allocated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for plan in budget_plans %}
+              <tr>
+                <td>{{ plan.category }}</td>
+                <td>{{ plan.month|date:"F Y" }}</td>
+                <td class="text-end">₱{{ plan.allocated_amount|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted">No budget plans yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -1,126 +1,16 @@
-/**
- * HugeRTE version 1.0.9 (2025-03-15)
- * Copyright (c) 2022 Ephox Corporation DBA Tiny Technologies, Inc.
- * Copyright (c) 2024 HugeRTE contributors
- * Licensed under the MIT license (https://github.com/hugerte/hugerte/blob/main/LICENSE.TXT)
- */
-
-(function () {
-    'use strict';
-
-    var global$1 = hugerte.util.Tools.resolve('hugerte.PluginManager');
-
-    const isSimpleType = type => value => typeof value === type;
-    const isBoolean = isSimpleType('boolean');
-    const isNumber = isSimpleType('number');
-
-    const option = name => editor => editor.options.get(name);
-    const register$2 = editor => {
-      const registerOption = editor.options.register;
-      registerOption('nonbreaking_force_tab', {
-        processor: value => {
-          if (isBoolean(value)) {
-            return {
-              value: value ? 3 : 0,
-              valid: true
-            };
-          } else if (isNumber(value)) {
-            return {
-              value,
-              valid: true
-            };
-          } else {
-            return {
-              valid: false,
-              message: 'Must be a boolean or number.'
-            };
-          }
-        },
-        default: false
-      });
-      registerOption('nonbreaking_wrap', {
-        processor: 'boolean',
-        default: true
-      });
-    };
-    const getKeyboardSpaces = option('nonbreaking_force_tab');
-    const wrapNbsps = option('nonbreaking_wrap');
-
-    const stringRepeat = (string, repeats) => {
-      let str = '';
-      for (let index = 0; index < repeats; index++) {
-        str += string;
-      }
-      return str;
-    };
-    const isVisualCharsEnabled = editor => editor.plugins.visualchars ? editor.plugins.visualchars.isEnabled() : false;
-    const insertNbsp = (editor, times) => {
-      const classes = () => isVisualCharsEnabled(editor) ? 'mce-nbsp-wrap mce-nbsp' : 'mce-nbsp-wrap';
-      const nbspSpan = () => `<span class="${ classes() }" contenteditable="false">${ stringRepeat('&nbsp;', times) }</span>`;
-      const shouldWrap = wrapNbsps(editor);
-      const html = shouldWrap || editor.plugins.visualchars ? nbspSpan() : stringRepeat('&nbsp;', times);
-      editor.undoManager.transact(() => editor.insertContent(html));
-    };
-
-    const register$1 = editor => {
-      editor.addCommand('mceNonBreaking', () => {
-        insertNbsp(editor, 1);
-      });
-    };
-
-    var global = hugerte.util.Tools.resolve('hugerte.util.VK');
-
-    const setup = editor => {
-      const spaces = getKeyboardSpaces(editor);
-      if (spaces > 0) {
-        editor.on('keydown', e => {
-          if (e.keyCode === global.TAB && !e.isDefaultPrevented()) {
-            if (e.shiftKey) {
-              return;
-            }
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            insertNbsp(editor, spaces);
-          }
-        });
-      }
-    };
-
-    const onSetupEditable = editor => api => {
-      const nodeChanged = () => {
-        api.setEnabled(editor.selection.isEditable());
-      };
-      editor.on('NodeChange', nodeChanged);
-      nodeChanged();
-      return () => {
-        editor.off('NodeChange', nodeChanged);
-      };
-    };
-    const register = editor => {
-      const onAction = () => editor.execCommand('mceNonBreaking');
-      editor.ui.registry.addButton('nonbreaking', {
-        icon: 'non-breaking',
-        tooltip: 'Nonbreaking space',
-        onAction,
-        onSetup: onSetupEditable(editor)
-      });
-      editor.ui.registry.addMenuItem('nonbreaking', {
-        icon: 'non-breaking',
-        text: 'Nonbreaking space',
-        onAction,
-        onSetup: onSetupEditable(editor)
-      });
-    };
-
-    var Plugin = () => {
-      global$1.add('nonbreaking', editor => {
-        register$2(editor);
-        register$1(editor);
-        register(editor);
-        setup(editor);
-      });
-    };
-
-    Plugin();
-
-})();
+�ጋልኢሜይል ያስፈልጋልስም ያስፈልጋል$1$2$3{MORE_ITEMS, plural,
+      =1 {# ተጨማሪ ንጥል ነገር}
+      one {# ተጨማሪ ንጥል ነገሮች}
+      other {# ተጨማሪ ንጥል ነገሮች}}ብዙየመላክ አማራጮችን ለማየት፣ አድራሻ ይምረጡለዚህ አድራሻ ማድረስ አልተቻለም። ሌላ አድራሻ ይምረጡ።የማድረስ አማራጮችን ለማየት፣ አድራሻ ይምረጡለዚህ አድራሻ ማስረከብ አልተቻለም። ሌላ አድራሻ ይምረጡ።የማንሳት አማራጮችን ለማየት አድራሻ ይምረጡከዚህ አድራሻ መውሰድ አልተቻለም። ሌላ አድራሻ ይምረጡ።{SHIPPING_ADDRESS, plural,
+      =0 {{1}}
+      =1 {{1} እና {2} ተጨማሪ}
+      one {{1} እና {2} ተጨማሪ}
+      other {{1} እና {2} ተጨማሪ}}{SHIPPING_OPTIONS, plural,
+       =0 {{1}}
+       =1 {{1} እና {2} ተጨማሪ}
+       one {{1} እና {2} ተጨማሪ}
+       other {{1} እና {2} ተጨማሪ}}{CONTACT, plural,
+       =0 {{1}}
+       =1 {{1} እና {2} ተጨማሪ}
+       one {{1} እና {2} ተጨማሪ}
+       other {{1} እና {2} ተጨማሪ}}$1፣ አሁን ላይ የተመረጠ። $2የትዕዛዝ ማጠቃለያ፣ $1የክፍያ ተቆጣጣሪ አዶበ $1 ላይ ክፍያዎን ለመፈጸም $2እየተጫነ ነው።ግዢዎን ያረጋግጡበተለምዶ የጣት አሻራዎን በመጠቀም በሚቀጥለው ደረጃ ገጽ ዕይታዎን ይክፈቱ። $1 ማድረግም ይችላሉ።በሌላ መንገድ ያረጋግጡ$2 በሚጠቀሙ ጣቢያዎች ላይ በ $1 ለማረጋገጥ መርጠዋል። ይህ አገልግሎት አቅራቢ እንዴት እንደሚከፍሉ መረጃ አከማችቶ ሊሆን ይችላል፣ ይህም እርስዎ $3 ይችላሉ።እንዲሰረዝ ጠይቅLorem ipsum dolor sit ametLorem ipsum dolor sit amet.Lorem $1 ipsum dolor sit amet.Lorem ipsum dolor <a href="#">sit amet</a>.LoremIpsumጥያቄ ተሳክቷልጥያቄ ወይም ጥያቄ ግቤቶች ልክ አይደሉምየአውታረ መረብ ስህተትጊዜያዊ የሰርቨር ስህተትHTTP ስህተትከአገልጋይ የምላሽ ኮድ መፍታት አልተቻለምአስተዳደር አይደገፍምየጠፋ መሳሪያ መዝገብየመሳሪያ አስተዳደር መሳን ልክ አይደለምማግበር አገልጋዩ ላይ በመጠባበቅ ላይ ነውየመሳሪያ ተካታታይ ቁጥር ልክ አይደለምየሚጣረስ የመሳሪያ ለዪፈቃዶች አልቀዋልየተወገደመመሪያ አልተገኘምየማይታወቅ ስህተትይህ የተጠቀለለ መሳሪያ ነው እና በኪዮስክ እና በምልክት ማሻሻያ መመዝገብ አይቻልም።ይህ መሣሪያ አሁን መመዝገብ አይችልም ምክንያቱም የእርስዎ ድርጅት አሃድ የመጀመሪያ ምዝገባ ገደብ ደርሷል. እርዳታ ለማግኘት አስተዳዳሪዎን ያነጋግሩ።የጎራ አለመመሳሰልጥያቄውን ማረጋገጥ አልተቻለምጥያቄው በጣም ትልቅ ነውበጣም ብዙ ጥያቄዎችየመሳሪያ ዳግም ማስጀመር ያስፈልጋልበደንበኛ መለያ መመዝገብ አልተቻለም (የጥቅል ፈቃድ አለ)።በድርጅት መለያ መመዝገብ አይቻልም (የድርጅት መለያ ብቁ አይደለም)።በድርጅትዎ የታገደማረጋገጥ ተሳክቷልልክ ያልሆነ የመነሻ ፊርማየተሳሳተ ፊርማየስህተት ኮድ ፖሊሲ ን በመጫን ማስነሳት ማረጋገጫ ተስኖትስህተት መለየት ፖሊሲትክክል ያልሆነ የፖሊሲ አይነትትክክል ያልሆነ አካል መለያመጥፎ የመመሪያ የጊዜ ማህተምየተመለሰው 

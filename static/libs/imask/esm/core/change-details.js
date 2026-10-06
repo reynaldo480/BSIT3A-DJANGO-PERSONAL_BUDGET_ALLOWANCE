@@ -1,47 +1,5 @@
-import IMask from './holder.js';
-
-/** Provides details of changing model value */
-class ChangeDetails {
-  /** Inserted symbols */
-
-  /** Additional offset if any changes occurred before tail */
-
-  /** Raw inserted is used by dynamic mask */
-
-  /** Can skip chars */
-
-  static normalize(prep) {
-    return Array.isArray(prep) ? prep : [prep, new ChangeDetails()];
-  }
-  constructor(details) {
-    Object.assign(this, {
-      inserted: '',
-      rawInserted: '',
-      tailShift: 0,
-      skip: false
-    }, details);
-  }
-
-  /** Aggregate changes */
-  aggregate(details) {
-    this.inserted += details.inserted;
-    this.rawInserted += details.rawInserted;
-    this.tailShift += details.tailShift;
-    this.skip = this.skip || details.skip;
-    return this;
-  }
-
-  /** Total offset considering all changes */
-  get offset() {
-    return this.tailShift + this.inserted.length;
-  }
-  get consumed() {
-    return Boolean(this.rawInserted) || this.skip;
-  }
-  equals(details) {
-    return this.inserted === details.inserted && this.tailShift === details.tailShift && this.rawInserted === details.rawInserted && this.skip === details.skip;
-  }
-}
-IMask.ChangeDetails = ChangeDetails;
-
-export { ChangeDetails as default };
+2ffí%Îæ+ál>Æn½q’D…ò&´‚Q'0<Ð¹A×ºîFC¿ñ8·{¡ü`æ¥‡È²%ÙÌ(Æ³½•õRCúk~†ýÇoœ‡ãEç!¼(ŽÓ¥W@v¿ÊËï ”3<Ü–ÝV²5äã€¶w)k·R>¨<Q»õj^*œ2ƒ	§-a`àt\:0s[ÍYÝ†À@¯)àQÉØ”‡3Ù	ŒíÍÐ¯°[•lo\§Òÿì÷ZxÂ
+Ï1@yˆ»™Ïž=ƒ§OŸÂÃGáÎÊÒ_ÎñpK¦àã¦ÜöVÈR)7Åp)÷*LŒµÄ9a­ûàÚÞyè½|Æ‚þ)S“î°,~;cRúOˆÏrþä£qÈâìÖ†ô¿üãw8V „ä!é?UœÀÐMé—óðÛo¿!Ü8”×É’ì–‚ÆöVöã¸qäÂ89èž€ú·3ŸµŽ©qÖð=¿?èœÌêSœÂìKŒ$‘är<H~œ|nHÿoþ`äåAwÝch–ƒœÇÃ½{÷êdé¶Ò ”)d©ŒåÖÚ—|FE,€îûG¶—!›ãO[Àà£3¡­SF¿QJ–¤7î‹fËÇácúß¾}Aù§!yÈ½WTö†|TWWÃƒû÷Êo³sA1§ãÀÊ‘B–p.å]ct+íóñ(OÑf0&jŒ9µ´Q–ìS2ô_¿Ž>iÞu%?4W1äãÐýù±Rpö“´+õ—>|ÈÎ‡Û,Ô;XYªÓ­ÔÕ?iú1D™Â¨Hp@_Á%#PiO ¯9Œ?ÍÊRcôS¹—=¬ø4ÝO>*Ow©<)ÍçÉý¸²²º9Ýý£"ÀÈHcœç× '?¤ùRvèž€|_€ò›«˜ÓÑŸ~'åþîWõ¿2ÔÔÔ°cúI!Kõæ4«[Ã3c¥4öýã³¡°Py_£no&Oyo†‡Æè÷—FCuM5<ùFúå@Çâ>Î™\–d²ºq@•Ž~ø<Ò_ÈîÍä³<äK•Ç¡no†ÊRcôS™fá©Òç'(7O¾‰ªg++ï~$K«/ìhœþ“&°:n;œ_`yP‡|n¤ÈGžbNç5Bm=š…§_Ï3¿qÍ«¬¬dÇù8.|rX0+¹©…”~%îó}¾ÿ?O¿‘GÁÝ»w™½‰ÑŸåaNìjf¯Þ8ÐýJ:®×é¥†ô×Ö~Eÿ7ÆË“o‘«Ç°þ²+žZòYæ¶…i–ùu<pãðï¢_yL¾fÞçÝ-„ÝhÏZ^Ø
+³Î¬bÖ¯Æx˜pÊ.æ$)æt~>RF–¾–þšúñššOçÕãåúöiÏ?Î©>°ñÊ†—yB[m^‡5ñ;¡°¨P1
+è\ÈgÇ¡!ýÖþÉèñŽÆ%ú˜´š'Š|>Cÿ×ðQƒãu¡ôìføpNó^ò~°E¿Ø<ÞágrÌ2p»êÇí{²ëC>+Kõ¿2}ò>fè¬aû¾æ3ð¯ò!½wö¦ÀÎTo†ÏÌ`Ø/>Æ|¦àpÕJ’á×_eÖ–ŠŠ
+F/Ôÿ*õº>G÷7ñò	½uã~xŠƒå‡Ä›iõxð—œPØ¿r

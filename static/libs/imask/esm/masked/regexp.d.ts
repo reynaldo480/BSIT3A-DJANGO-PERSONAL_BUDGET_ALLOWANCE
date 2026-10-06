@@ -1,18 +1,5 @@
-import Masked, { type MaskedOptions } from './base';
-export type MaskedRegExpOptions = MaskedOptions<MaskedRegExp>;
-/** Masking by RegExp */
-export default class MaskedRegExp extends Masked<string> {
-    /** */
-    mask: RegExp;
-    /** Enable characters overwriting */
-    overwrite?: boolean | 'shift' | undefined;
-    /** */
-    eager?: boolean | 'remove' | 'append' | undefined;
-    /** */
-    skipInvalid?: boolean | undefined;
-    /** */
-    autofix?: boolean | 'pad' | undefined;
-    updateOptions(opts: Partial<MaskedRegExpOptions>): void;
-    _update(opts: Partial<MaskedRegExpOptions>): void;
-}
-//# sourceMappingURL=regexp.d.ts.map
+§Æ|(µÂ¤uÏî½Î´†{ğÑÑô%3/ß–}–{Ø2¦ğ«¼ºuK#ñÿó¡"³P[8ÜİŸ2y¨½¿ø>ÈË¡“SP?_6cÉ0İ¸ÌÑz9Vg¤¯dô{•‡»ì¬¡;~Ç‡~O6ww½íù–¿h¨iÅ²¿;“êÈ÷jÖ˜Éî¯1^¥İ‘ß”>'X“1¯d[Pe,š~7G—z1éÛÄVšÎ†P¸Ö¢[‘^Ó	û/÷–[*Ü•£ÊÙ³x°;êÍ,§NÕîu¿¿¨GáNÈF^‡cÚrˆß»ñ3èÅdèÅW½>£ÕƒÅĞƒt›™ƒ·÷0XçÛkYÂUéÙ¾ò9ÌX«5é˜¶NõŠñ
+–#%G>IıP©é«ªH+
+å•Î~œ¥ËÏwÔ2´–JøÊ»~?5Ü%î
+³#9%áã¹ïîµ]“ó-n/í¦jD2íPãÜTú¶.jbóĞÖßtµÄ=Ãò
+×s£ıºœ—ø«©­—AŸ¡©2ÚúœaGûÛØ§SéÚ)ô©÷5oŸ:¢Uß~1zµç©—¹?vÇ°9m40ê«Wpï´ìIÿöhüõ­z'TòÚÂ=®Ï£½Şé]#>Ø3 mÍ‡íy¶š|ôåsª»s“wh/æİªíéë‚[I_ä7AîÊıo÷mFóİ”!ç’/w2İA·‹s|~ônA·:´Y·¶ÓKĞ­oûñN‡ö¾Dıè¾6û•lkÌê™»?>ºê›‹ß}.l»¶FëßRkox¥³;;º²—ékø®]rÿ´~³áA7ªhï*x0=Ç(§Wá¤C=iøKàÿ¿×V@ßNë[²kMµêbmî,ö

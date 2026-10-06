@@ -140,7 +140,80 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def home(request):
-    return render(request, 'home.html')
+    from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, SavingsGoal
+
+    user = request.user
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add_income':
+            Income.objects.create(
+                amount=request.POST.get('amount', 0),
+                source=request.POST.get('source', 'allowance'),
+                description=request.POST.get('description', ''),
+                date=request.POST.get('date'),
+                user=user,
+            )
+            messages.success(request, 'Income added.')
+
+        elif action == 'add_expense':
+            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            Expense.objects.create(
+                amount=request.POST.get('amount', 0),
+                description=request.POST.get('description', ''),
+                date=request.POST.get('date'),
+                category=category,
+                user=user,
+            )
+            messages.success(request, 'Expense added.')
+
+        elif action == 'add_grocery':
+            GroceryItem.objects.create(
+                name=request.POST.get('name', ''),
+                quantity=request.POST.get('quantity', 1),
+                estimated_price=request.POST.get('estimated_price', 0),
+                user=user,
+            )
+            messages.success(request, 'Grocery item added.')
+
+        elif action == 'toggle_grocery':
+            item = GroceryItem.objects.filter(id=request.POST.get('id'), user=user).first()
+            if item:
+                item.is_purchased = not item.is_purchased
+                item.save()
+
+        elif action == 'delete_grocery':
+            GroceryItem.objects.filter(id=request.POST.get('id'), user=user).delete()
+
+        return redirect('dashboard')
+
+    categories = Category.objects.filter(user=user)
+    incomes = Income.objects.filter(user=user)
+    expenses = Expense.objects.filter(user=user)
+    budget_plans = BudgetPlan.objects.filter(user=user)
+    savings_goals = SavingsGoal.objects.filter(user=user)
+    grocery_items = GroceryItem.objects.filter(user=user, is_purchased=False)
+
+    total_income = sum(i.amount for i in incomes)
+    total_expenses = sum(e.amount for e in expenses)
+    balance = total_income - total_expenses
+
+    recent_expenses = expenses.order_by('-date')[:5]
+    recent_incomes = incomes.order_by('-date')[:5]
+
+    context = {
+        'categories': categories,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'balance': balance,
+        'budget_plans': budget_plans,
+        'savings_goals': savings_goals,
+        'recent_expenses': recent_expenses,
+        'recent_incomes': recent_incomes,
+        'grocery_items': grocery_items,
+    }
+    return render(request, 'home.html', context)
 
 
 @require_http_methods(['GET', 'POST'])

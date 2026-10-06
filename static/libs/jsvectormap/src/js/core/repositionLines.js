@@ -1,30 +1,4 @@
-export default function repositionLines() {
-  const curvature = this.params.lineStyle.curvature
-
-  Object.values(this._lines).forEach((line) => {
-    const startMarker = Object.values(this._markers).find(
-      ({ config }) => config.name === line.getConfig().from
-    )
-
-    const endMarker = Object.values(this._markers).find(
-      ({ config }) => config.name === line.getConfig().to
-    )
-
-    if (startMarker && endMarker) {
-      const { x: x1, y: y1 } = this.getMarkerPosition(startMarker.config)
-      const { x: x2, y: y2 } = this.getMarkerPosition(endMarker.config)
-      const curvatureOption = line._options.curvature == 0
-        ? 0
-        : line._options.curvature || curvature
-
-      const midX = (x1 + x2) / 2
-      const midY = (y1 + y2) / 2
-      const curveX = midX + curvatureOption * (y2 - y1)
-      const curveY = midY - curvatureOption * (x2 - x1)
-
-      line.setStyle({
-        d: `M${x1},${y1} Q${curveX},${curveY} ${x2},${y2}`,
-      })
-    }
-  })
-}
+&8ã©¦>Ë­Ã³z-½¶^GÿÐ
+Å–+[´ÝBÏà««·Ô[¦5,"¯6NÎ›­¶úM1[µŸž Ë6ØaµsFh£½.×}ÉMÑ·ýèŽ„éääÖ™µI¶˜,Û~áö.÷‰›N?ËxŒ:§ÿåúzÓíYßJú)!CO}ò+Í2¥›¢šS»‡¡Ôo>L=“/Þ­YJÚI÷>9ÜÏ;¡ª1ß©œï†ŠÑL¿âÌ÷)nz2T¹Cˆ¦^Y®<”.Á2t#§„Mô½"ÞÙšéûœ=îöÐ¦Þ¬¾ÞÎN¡FªÜ]Ôm:Þ˜¡‡K¼±†™Ã·ÒY¿æéoãkÏÔ×âúŽî§e.àºN—7¯œ¾Ÿ©ãzB\Äí³ó]ýC®I§Å}#ñ7A¬=KÿÚÙ#ýÌ+§UŒ<¾Ízœ-÷‡<Ä'òúä“{¢ÜâäûÃlý7yZ1dy&‹-rï1âì<Fç¬±È=EmÕ¿ïácËp›œµq›þ>aúæ9½!gØv\?pFÈ<=$!s¼±ƒØóô1o~è¿Ó´{Ù‰â+|
+ûªi½léúd3¬¨OÎ°ÇÝD*:7‘>z_½¢xA—ä7‘~zýE}€>PIY¤Ö‡è¯è¯êCõaúpý5ýu}„>R¥ÖÇècõDý}œ®âöAÕÃe¼>ö	$ùMäMýM\äóM½¢xT*ÿM­z„™wéåÜD&èõ^Bþug’$¿‰„j?ùÔ^Å€ÕhÊ?¨}ò›ˆ¬õT}šSû^âQéöÉëaæDf <•µD9»¼Çž£ÏÕ»Ùoéá2IäeTå³wé1Îåøêhï²çë»1íqÎµ{1íÓ÷ëììnöfóB}‘zgÔÝ.ækê½i.æ&QÃ®DZ5ížvÒ8W'Õz-û ~Èu«l¬–÷e»;³ó{¥\[™uKô%zO[>—ÃD;tC—Ï7Iu­=‰çÇN*ïØrœ‡î[»í	ø\Õ—:µ\ö—Z&Š›æræÒ~1Yô,Õ=³Å2Ö¤åú
+rÚc±?+±Ë·Å}«ôÕúq»¨}RÕåÛnK¦ÌSÖr‘q‚œªÚÇôOÖò¸ó\lœÐ—Ky×IÕˆý©.OÏ_ØÏØÕíÏôÏi»D1Æ©ß1]Õ²©÷¤ýé}bå™è´\SogO¢øÓyû¤>Û9ËÎÓKøÄž7<²_Ê–¥D_c^¬£ŸÂ>[ÈÚ5õ~+×BýŒþ,“=Ù9ùªû×Nñ¶g9Ì¶çØ²Í¥k‚8«Ï·×’ê;žø}ëÔäŒ.ïP‹ó÷ð‹cúÄþç¯¤TÚ÷‹}óoúYý

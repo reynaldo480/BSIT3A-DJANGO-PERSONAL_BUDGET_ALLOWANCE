@@ -1,26 +1,9 @@
-/**
-* Tom Select v2.4.3
-* Licensed under the Apache License, Version 2.0 (the "License");
-*/
-
-/**
- * Plugin: "no_active_items" (Tom Select)
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at:
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
- * ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- *
- */
-
-function plugin () {
-  this.hook('instead', 'setActiveItem', () => {});
-  this.hook('instead', 'selectAll', () => {});
-}
-
-export { plugin as default };
-//# sourceMappingURL=plugin.js.map
+one {तुमी आतां हें बदलूंक जाय}
+      other {तुमी आतां हें बदलूंक जाय}}{COUNT, plural,
+      =0 {तुमचे पासवर्ड्स विशिश्ट आसात}
+      =1 {{COUNT} परत वापरिल्लो पासवर्ड}
+      one {{COUNT} परत वापरिल्लो पासवर्ड}
+      other {{COUNT} परत वापरिल्ले पासवर्ड्स}}तुमी परत वापरिल्ले पासवर्ड्स वापरिनातएकमेव पासवर्ड्स निर्माण करचे{COUNT, plural,
+      =0 {तुमचे पासवर्ड्स बळिश्ट दिसतात}
+      =1 {{COUNT} अस्कट पासवर्ड}
+      one {{COUNT} अस्कट पासवर्ड}

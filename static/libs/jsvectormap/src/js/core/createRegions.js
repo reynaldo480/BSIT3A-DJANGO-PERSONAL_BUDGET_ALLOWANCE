@@ -1,23 +1,4 @@
-import { merge } from '../util'
-import Region from '../components/region'
-
-export default function createRegions() {
-  this._regionLabelsGroup = this._regionLabelsGroup || this.canvas.createGroup('jvm-regions-labels-group')
-
-  for (const code in this._mapData.paths) {
-    const region = new Region({
-      map: this,
-      code: code,
-      path: this._mapData.paths[code].path,
-      style: merge({}, this.params.regionStyle),
-      labelStyle: this.params.regionLabelStyle, 
-      labelsGroup: this._regionLabelsGroup,
-      label: this.params.labels && this.params.labels.regions,
-    })
-
-    this.regions[code] = {
-      config: this._mapData.paths[code],
-      element: region,
-    }
-  }
-}
+º—q{zõx^Ó~BÿÎù©ô õ®¸õºM=êS‡Ù“Ö“BÄiI˜Áì-¹û\C¿B#ÊyvÂ{œÃr“Ï,è‰}*ş30o€ì°t¨JoÁPåşÆëêıoÚáœõ¡(|ùiAùÎ—ıhú<|	¸gBÿ.EÜ©òİ0eíà8enğjşŠ¦ïö¢«^f-áü»]ö7Æx®p¿„õğş¡¤½¶%áàVõª*kwÖí-°’uû
+égç^ş~¯±¹s²R•~]Èu 9, Là:}Šy4Ì‡‰”i	:
+=6æNjçsùØ£Hs+ìO?N*×Ä#î{ŠëJ¿Ä˜³n°N ç€NwÀRÊy°•1ÿ,÷Iö–½è±ì%Íå>Ã˜\A[À~0_~¦ÖäÕÈü>;p[Èü¬F¸ÑÅÉ'±6Ş†”´_¸Š9HšÜ6ıÑm×rxRµï8hˆûJôNØHz3i¿Gûä†O1¿€ş‘¶¸Š9=æÎĞ:GRı÷SÇ>ìÿ(‹ÿ&íOÙG£¿ƒgn1¦İvÜ{Ké“„İJüm9Ôß¼}€Ş…çÌEØ÷1·Á|=?”‡#ğdÉ«9ß8mÀ|.æSé&İ•2>¬­Aè-ø»*¿ünşÄïêl{¾Í­Ü/Àp&¿ú»š»˜‹¢wº¿ßå¾MÙ°çÍ£îVÇÉ¯º
+¬Ä¯:ıö³<Ê^¾…/áœƒß!–²ÇAj(Ùóºk<z-ù•E§‚´°€|Ş…w`|wa/œ€¯ÁC™# ¼«KËï£¡9¤‚8H,ÈZ„~‘2Ş€~wY' 1n9ä·Ó÷˜?ĞûÕ§ß0Æ.c®ó'moåWîÍ®iÉş-Å}'¾Ï\…¼›ä;@h³ÂşB~ñR¡A¿!”{Âùte‹–çV¯!´ó„ö˜B	¦Åù.„åİ'¿

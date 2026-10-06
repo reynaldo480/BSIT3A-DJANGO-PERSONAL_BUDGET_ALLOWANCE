@@ -1,31 +1,8 @@
-import TomSelect from "./tom-select.js";
-import change_listener from "./plugins/change_listener/plugin.js";
-import checkbox_options from "./plugins/checkbox_options/plugin.js";
-import clear_button from "./plugins/clear_button/plugin.js";
-import drag_drop from "./plugins/drag_drop/plugin.js";
-import dropdown_header from "./plugins/dropdown_header/plugin.js";
-import caret_position from "./plugins/caret_position/plugin.js";
-import dropdown_input from "./plugins/dropdown_input/plugin.js";
-import input_autogrow from "./plugins/input_autogrow/plugin.js";
-import no_backspace_delete from "./plugins/no_backspace_delete/plugin.js";
-import no_active_items from "./plugins/no_active_items/plugin.js";
-import optgroup_columns from "./plugins/optgroup_columns/plugin.js";
-import remove_button from "./plugins/remove_button/plugin.js";
-import restore_on_backspace from "./plugins/restore_on_backspace/plugin.js";
-import virtual_scroll from "./plugins/virtual_scroll/plugin.js";
-TomSelect.define('change_listener', change_listener);
-TomSelect.define('checkbox_options', checkbox_options);
-TomSelect.define('clear_button', clear_button);
-TomSelect.define('drag_drop', drag_drop);
-TomSelect.define('dropdown_header', dropdown_header);
-TomSelect.define('caret_position', caret_position);
-TomSelect.define('dropdown_input', dropdown_input);
-TomSelect.define('input_autogrow', input_autogrow);
-TomSelect.define('no_backspace_delete', no_backspace_delete);
-TomSelect.define('no_active_items', no_active_items);
-TomSelect.define('optgroup_columns', optgroup_columns);
-TomSelect.define('remove_button', remove_button);
-TomSelect.define('restore_on_backspace', restore_on_backspace);
-TomSelect.define('virtual_scroll', virtual_scroll);
-export default TomSelect;
-//# sourceMappingURL=tom-select.complete.js.map
+��ं स्थापीत करूंक आवडटलें:}
+          one {"{APP_NAME}" क ह्या डिव्हायसाचेर सकयल दिल्लीं एप्लिकेशनां स्थापीत करूंक आवडटलें:}
+          other {"{APP_NAME}" क ह्या डिव्हायसाचेर सकयल दिल्लीं एप्लिकेशनां स्थापीत करूंक आवडटलें:}
+        }{NUM_SUB_APP_INSTALLS, plural,
+          =1 {तुमी "$1" खातीर परवानगी ह्या एप्लिकेशना खातीर परवानगी दितले. $2}
+          one {तुमी "$1" खातीर परवानगी ह्या एप्लिकेशनां खातीर परवानगी दितले. $2}
+          other {तुमी "$1" खातीर परवानगी ह्या एप्लिकेशनां खातीर परवानगी दितले. $2}
+        }पितृक ऍप्लिकेशना खातीर परवानगी हाताळच्योस्थापीत करूंक नाशिल्लीं ऍप्लिकेशनांमांडावळी आनी खूब किदें (Alt+F). अपडेट उपलब्ध आसा.एप अपडेट उपलब्धह्या ऍप्लिकेशनाचें अपडेट तुमच्या ऍडमिनान आडायल्यात आनी ऍप योग्य प्रकारान काम करूंक शकनामाथाळो पट्टी लिपोवचीमाथाळो पट्टी दाखोवचीमाथाळो पट्ट�

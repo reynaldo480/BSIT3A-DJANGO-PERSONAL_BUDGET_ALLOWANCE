@@ -1,66 +1,16 @@
-@media screen {
-  html {
-    background: #f4f4f4;
-    min-height: 100%;
-  }
-}
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}
-@media screen {
-  body {
-    background-color: #fff;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
-    box-sizing: border-box;
-    margin: 1rem auto 0;
-    max-width: 820px;
-    min-height: calc(100vh - 1rem);
-    padding: 4rem 6rem 6rem 6rem;
-  }
-}
-table {
-  border-collapse: collapse;
-}
-/* Apply a default padding if legacy cellpadding attribute is missing */
-table:not([cellpadding]) th,
-table:not([cellpadding]) td {
-  padding: 0.4rem;
-}
-/* Set default table styles if a table has a positive border attribute
-   and no inline css */
-table[border]:not([border="0"]):not([style*="border-width"]) th,
-table[border]:not([border="0"]):not([style*="border-width"]) td {
-  border-width: 1px;
-}
-/* Set default table styles if a table has a positive border attribute
-   and no inline css */
-table[border]:not([border="0"]):not([style*="border-style"]) th,
-table[border]:not([border="0"]):not([style*="border-style"]) td {
-  border-style: solid;
-}
-/* Set default table styles if a table has a positive border attribute
-   and no inline css */
-table[border]:not([border="0"]):not([style*="border-color"]) th,
-table[border]:not([border="0"]):not([style*="border-color"]) td {
-  border-color: #ccc;
-}
-figure figcaption {
-  color: #999;
-  margin-top: 0.25rem;
-  text-align: center;
-}
-hr {
-  border-color: #ccc;
-  border-style: solid;
-  border-width: 1px 0 0 0;
-}
-.mce-content-body:not([dir=rtl]) blockquote {
-  border-left: 2px solid #ccc;
-  margin-left: 1.5rem;
-  padding-left: 1rem;
-}
-.mce-content-body[dir=rtl] blockquote {
-  border-right: 2px solid #ccc;
-  margin-right: 1.5rem;
-  padding-right: 1rem;
-}
+ionne pas correctement. Pour résoudre l’erreur, désactivez l’extension.</p>
+    <h4>Étape 3 : mettre à jour votre système d’exploitation</h4>
+    <p>Assurez-vous que votre appareil est à jour.</p>
+    <h4>Étape 4 : désactiver temporairement votre antivirus</h4>
+    <p>Vous verrez cette erreur si vous disposez d’un logiciel antivirus qui fournit une « protection HTTPS » ou une « analyse HTTPS ». L’antivirus empêche Microsoft Copilot de garantir la sécurité.</p>
+    <p>Pour résoudre le problème, désactivez votre logiciel antivirus. Si la page fonctionne après la désactivation du logiciel, désactivez ce logiciel lorsque vous utilisez des sites sécurisés.</p>
+    <p>N’oubliez pas de réactiver votre antivirus une fois que vous avez terminé.</p>
+    <h4>Étape 5 : obtenez de l’aide supplémentaire</h4>
+    <p>Si l’erreur s’affiche toujours, contactez le propriétaire du site Web.</p>« Le logiciel de votre ordinateur empêche Microsoft Copilot de se connecter en toute sécurité au web » (ordinateurs Windows uniquement)Le site $2 n’a pas pu fournir une stratégie d’origine,
+    ce qui empêche Microsoft Copilot de répondre à votre demande de
+    $1. Les stratégies d’origine peuvent être utilisées par des opérateurs de site
+    pour configurer la sécurité et d’autres propriétés d’un site.Le serveur que vous allez utiliser, $2, a paramétré un en-tête
+    exigeant qu’une stratégie d’origine soit appliquée à toutes les requêtes qui y sont envoyées. Toutefois,
+    l’en-tête est malformé, ce qui empêche l’application de répondre à
+    votre requête de $1. Les stratégies d’origine peuvent être utilisées par
+    des opérateurs de site pour configurer la sécurité et d’autres propriétés de site.Un certificat que vous ou quelqu’un d’autre avez installé sur votre 

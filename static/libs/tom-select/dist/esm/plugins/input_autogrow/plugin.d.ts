@@ -1,15 +1,1 @@
-/**
- * Plugin: "input_autogrow" (Tom Select)
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at:
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
- * ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- *
- */
-import type TomSelect from '../../tom-select.ts';
-export default function (this: TomSelect): void;
+वर्जन: $1आकार: $1परतून लोडपरत लोड जाता…विस्तार लोड करपाक अपेस आयलांचूक:फायल:मॅनिफेस्ट लोड करपाक शकलो नाकार्यावळी घेयत आसा…शेणिल्लें वा स्थापणूक करूंक नाशिल्लें ऍक्सटँशनहालींच्या कृती नातुमचो ब्रावजर अणभव वाडोवंक सोदतात? <a target="_blank" href="https://microsoftedge.microsoft.com/addons">Microsoft Store तल्यान एक्सटँ�

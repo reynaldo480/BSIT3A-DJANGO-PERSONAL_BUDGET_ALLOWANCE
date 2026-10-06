@@ -1,20 +1,3 @@
-import { DateTime } from './datetime';
-declare module './litepicker' {
-    interface Litepicker {
-        show(element?: any): void;
-        hide(): void;
-        gotoDate(date: any, idx?: any): void;
-        clearSelection(): void;
-        destroy(): void;
-        getDate(): DateTime | null;
-        getStartDate(): DateTime | null;
-        getEndDate(): DateTime | null;
-        setDate(date: any): void;
-        setStartDate(date: any): void;
-        setEndDate(date: any): void;
-        setDateRange(date1: any, date2: any): void;
-        setLockDays(array: any): void;
-        setHighlightedDays(array: any): void;
-        setOptions(options: any): void;
-    }
-}
+íĞÍhİÎ
+úS%ûéÈœ­éR‘ÒóK–ñÊ›å%3øŸö6¥ª„§¾¿ğ9ñÆû‘Õ“›‡æ/œA[7?~tvŞœ#½ÖöŸySa`ş'f¶ÕQ"‹Âx‘õ¼JtÈdÎ	s=’À"CÊ š[gºà@Æ`Ú¤X¦ĞÍ¢àJl£àé¨¦ÅxºÜÁ<ªg%†ƒD‰÷øŠÆ¾Jfy÷jQXB´©Œzé!‘ø°w¨OvKà÷ k“„³íZ˜§,ÖØ&ï‘T8¤ÊwË`ÔÜuÉ(\¼ğJş"Eë·$}+6ñíI;j\hê—†Öº+§XäS<üÀÒ4© xÉ!3ÿÔ&§°XÃ.…s*6«ïµÒ¥Æº)LkeÊ¡“ËêúÔÕè h«½hª›§I)½µğÔ[Ë¶,2Q÷*®m‘Ké2şƒšÌ5´T9WÅ^ArïÜÌØús«¹"5ç(‹£´á8ùıûAß™*ò¬ƒõş®½âƒ_)·¢«F!wŒ¡İ¯œªïŒXpD™ ¸§š\
+¯Ûb8Åf©kãƒN#g?;‘úJ$Ì“³ëöáu%Çğ…´İÁñ8äÉ8ìrD´œ¬åªíƒµ¨ô/òBœşÉ¿é¬ï§ùfnï_×Ğ9VPFİh’(óîi×Gª&8è‚tCñ®iç¯¿æZ-5¬&Ú.¹@j–)–¿­Şènyüi\v0RºóËa*…)qÙ‰näò­H‡âr(¾Ğ¨æşa½c¸0.ê^×ÏŸìç¸9Xd=¹~Ä²¥ù×9p»5ÂGN÷Që3ÔíØ-Ë,w›¦¯áÑœMİá%ìá›XyêÃ§ONÕŠWb™VË7ä0M“†¸Ì×3w‚c(·»'ÛÜ£ûÕ‡ã

@@ -1,16 +1,1 @@
-/**
- * Plugin: "restore_on_backspace" (Tom Select)
- * Copyright (c) contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at:
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
- * ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- *
- */
-import type TomSelect from '../../tom-select.ts';
-export default function (this: TomSelect): void;
+��PKCS #7, प्रमाणपत्र साखळीप्रमाणपत्र दृश्यकर्ता: $1&सादारण&तपशील&दुरुस्त्योविस्वासविस्वासू स्थितीअभरवंशाचेंइशारो!विस्वसनीयमुळाव्यो मर्यादीमर्यादी जोडच्योडीएनएस वा सीआयडीआर निर्बंधनिर्बंध जोडपात त्रुटी जालीनिर्बंध काडून उडोवपाची त्रुटी जालीट्रस्ट राज्य बदल वाचयतना त्रुटी जाल�

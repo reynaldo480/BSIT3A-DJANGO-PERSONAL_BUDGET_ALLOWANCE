@@ -573,3 +573,120 @@ def grocery_delete_ajax(request, pk):
     item.delete()
     messages.success(request, 'Grocery item has been deleted successfully.')
     return JsonResponse({'status': 'deleted'})
+
+
+BUDGET_RULE = [
+    ('need', 'Needs', Decimal('0.50'), 'Essentials: food, fare, school supplies, and bills.'),
+    ('want', 'Wants', Decimal('0.30'), 'Non-essentials: eating out, load/data, games, and extras.'),
+    ('saving', 'Savings', Decimal('0.20'), 'Set this aside for your goals and emergencies.'),
+]
+
+BUDGET_EXAMPLES = {
+    'need': [
+        ('Food & groceries', 'Rice, ulam, veggies, snacks at home'),
+        ('Fare / transportation', 'Jeep, bus, tricycle, fuel'),
+        ('School supplies', 'Notebooks, pens, printing, projects'),
+        ('Load / data', 'Internet, mobile data, subscriptions for school'),
+        ('Bills / rent', 'Dorm, electricity, water, shared bills'),
+    ],
+    'want': [
+        ('Snacks & milk tea', 'Milk tea, coffee, chips, desserts'),
+        ('Eating out', 'Fast food, restaurants, food delivery'),
+        ('Games / apps', 'In-app purchases, game credits, streaming'),
+        ('Hobbies', 'Sports, art, music, collections'),
+        ('Clothes & accessories', 'Outfits, shoes, bags'),
+    ],
+    'saving': [
+        ('Emergency fund', 'For unexpected expenses'),
+        ('Savings goal', 'Laptop, phone, travel, gadget'),
+        ('Tuition / project fund', 'Next term, thesis, group projects'),
+    ],
+}
+
+FOOD_EXAMPLES = [
+    ('Rice / staple', Decimal('0.40')),
+    ('Ulam / viands', Decimal('0.35')),
+    ('Snacks', Decimal('0.15')),
+    ('Drinks / water', Decimal('0.10')),
+]
+
+
+@login_required(login_url='login')
+@require_POST
+def budget_advisor_ajax(request):
+    amount = _to_decimal(request.POST.get('amount'))
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Enter an amount greater than 0.'}, status=400)
+
+    categories = list(Category.objects.filter(user=request.user))
+    grocery_items = GroceryItem.objects.filter(user=request.user)
+
+    grocery_planned = sum(
+        (item.estimated_price or Decimal('0')) * item.quantity for item in grocery_items
+    )
+
+    buckets = []
+    bucket_amounts = {}
+    for type_key, label, pct, tip in BUDGET_RULE:
+        bucket_amount = (amount * pct).quantize(Decimal('0.01'))
+        bucket_amounts[type_key] = bucket_amount
+        type_categories = [c for c in categories if c.category_type == type_key]
+        per_category = (
+            (bucket_amount / len(type_categories)).quantize(Decimal('0.01'))
+            if type_categories else None
+        )
+        buckets.append({
+            'type': type_key,
+            'label': label,
+            'percent': int(pct * 100),
+            'amount': float(bucket_amount),
+            'tip': tip,
+            'examples': [
+                {'name': name, 'note': note} for name, note in BUDGET_EXAMPLES[type_key]
+            ],
+            'categories': [
+                {'name': c.name, 'amount': float(per_category)} for c in type_categories
+            ],
+        })
+
+    needs_amount = bucket_amounts['need']
+
+    food_budget = (needs_amount * Decimal('0.60')).quantize(Decimal('0.01'))
+    food_items = [
+        {
+            'name': name,
+            'percent': int(pct * 100),
+            'amount': float((food_budget * pct).quantize(Decimal('0.01'))),
+        }
+        for name, pct in FOOD_EXAMPLES
+    ]
+
+    tips = ['Follow the 50/30/20 rule: 50% needs, 30% wants, 20% savings.']
+    if grocery_planned > 0:
+        if grocery_planned > needs_amount:
+            tips.append(
+                f'Your grocery list costs about ₱{grocery_planned:.2f}, which is more than your '
+                f'₱{needs_amount:.2f} needs budget. Trim the list or move some to wants.'
+            )
+        else:
+            tips.append(
+                f'Your grocery list costs about ₱{grocery_planned:.2f} — within your '
+                f'₱{needs_amount:.2f} needs budget.'
+            )
+            tips.append(
+                f'After groceries, about ₱{needs_amount - grocery_planned:.2f} is left for other '
+                f'needs (fare, supplies).'
+            )
+    else:
+        tips.append('Add items to your grocery list so we can estimate your food budget.')
+
+    tips.append('Priority order: needs first, then savings, and wants last.')
+
+    return JsonResponse({
+        'amount': float(amount),
+        'buckets': buckets,
+        'grocery_planned': float(grocery_planned),
+        'needs_amount': float(needs_amount),
+        'food': {'budget': float(food_budget), 'items': food_items},
+        'tips': tips,
+    })

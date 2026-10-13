@@ -20,4 +20,5 @@ urlpatterns = [
     path('grocery/save/', views.grocery_save_ajax, name='grocery_save_ajax'),
     path('grocery/toggle/<int:pk>/', views.grocery_toggle_ajax, name='grocery_toggle_ajax'),
     path('grocery/delete/<int:pk>/', views.grocery_delete_ajax, name='grocery_delete_ajax'),
+    path('advisor/', views.budget_advisor_ajax, name='budget_advisor_ajax'),
 ]

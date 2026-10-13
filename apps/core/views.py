@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -6,9 +7,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import IntegrityError
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_POST, require_http_methods
+
+from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, SavingsGoal
 
 User = get_user_model()
 
@@ -140,8 +145,6 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def home(request):
-    from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, SavingsGoal
-
     user = request.user
 
     if request.method == 'POST':
@@ -193,7 +196,7 @@ def home(request):
     expenses = Expense.objects.filter(user=user)
     budget_plans = BudgetPlan.objects.filter(user=user)
     savings_goals = SavingsGoal.objects.filter(user=user)
-    grocery_items = GroceryItem.objects.filter(user=user, is_purchased=False)
+    grocery_items = GroceryItem.objects.filter(user=user)
 
     total_income = sum(i.amount for i in incomes)
     total_expenses = sum(e.amount for e in expenses)
@@ -204,6 +207,8 @@ def home(request):
 
     context = {
         'categories': categories,
+        'incomes': incomes,
+        'expenses': expenses,
         'total_income': total_income,
         'total_expenses': total_expenses,
         'balance': balance,
@@ -246,3 +251,325 @@ def register_view(request):
     )
     login(request, user)
     return redirect('dashboard')
+
+
+def _to_decimal(value, default=None):
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return default
+
+
+def _to_date(value):
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_month(value):
+    for fmt in ('%Y-%m', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(value, fmt).date().replace(day=1)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _scoped_or_none(model, user, pk):
+    return model.objects.filter(id=pk, user=user).first()
+
+
+@login_required(login_url='login')
+@require_POST
+def income_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        income = _scoped_or_none(Income, request.user, pk)
+        if income is None:
+            return JsonResponse({'error': 'Income not found.'}, status=404)
+    else:
+        income = Income()
+
+    amount = _to_decimal(request.POST.get('amount'))
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Amount must be greater than 0.'}, status=400)
+
+    date = _to_date(request.POST.get('date'))
+    if date is None:
+        return JsonResponse({'error': 'A valid date is required.'}, status=400)
+
+    income.amount = amount
+    income.source = request.POST.get('source', 'allowance')
+    income.description = request.POST.get('description', '').strip()
+    income.date = date
+    if not income.pk:
+        income.user = request.user
+    income.save()
+
+    messages.success(request, f'Income has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': income.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def income_delete_ajax(request, pk):
+    income = _scoped_or_none(Income, request.user, pk)
+    if income is None:
+        return JsonResponse({'error': 'Income not found.'}, status=404)
+    income.delete()
+    messages.success(request, 'Income has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})
+
+
+@login_required(login_url='login')
+@require_POST
+def expense_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        expense = _scoped_or_none(Expense, request.user, pk)
+        if expense is None:
+            return JsonResponse({'error': 'Expense not found.'}, status=404)
+    else:
+        expense = Expense()
+
+    amount = _to_decimal(request.POST.get('amount'))
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Amount must be greater than 0.'}, status=400)
+
+    date = _to_date(request.POST.get('date'))
+    if date is None:
+        return JsonResponse({'error': 'A valid date is required.'}, status=400)
+
+    category = _scoped_or_none(Category, request.user, request.POST.get('category'))
+
+    expense.amount = amount
+    expense.description = request.POST.get('description', '').strip()
+    expense.date = date
+    expense.category = category
+    if not expense.pk:
+        expense.user = request.user
+    expense.save()
+
+    messages.success(request, f'Expense has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': expense.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def expense_delete_ajax(request, pk):
+    expense = _scoped_or_none(Expense, request.user, pk)
+    if expense is None:
+        return JsonResponse({'error': 'Expense not found.'}, status=404)
+    expense.delete()
+    messages.success(request, 'Expense has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})
+
+
+@login_required(login_url='login')
+@require_POST
+def category_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        category = _scoped_or_none(Category, request.user, pk)
+        if category is None:
+            return JsonResponse({'error': 'Category not found.'}, status=404)
+    else:
+        category = Category()
+
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'Category name is required.'}, status=400)
+
+    category_type = request.POST.get('category_type', 'need')
+    valid_types = [choice[0] for choice in Category.CATEGORY_TYPES]
+    if category_type not in valid_types:
+        return JsonResponse({'error': 'Invalid category type.'}, status=400)
+
+    category.name = name
+    category.category_type = category_type
+    if not category.pk:
+        category.user = request.user
+    try:
+        category.save()
+    except IntegrityError:
+        return JsonResponse({'error': 'You already have a category with that name.'}, status=400)
+
+    messages.success(request, f'Category has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': category.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def category_delete_ajax(request, pk):
+    category = _scoped_or_none(Category, request.user, pk)
+    if category is None:
+        return JsonResponse({'error': 'Category not found.'}, status=404)
+    category.delete()
+    messages.success(request, 'Category has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})
+
+
+@login_required(login_url='login')
+@require_POST
+def budget_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        plan = _scoped_or_none(BudgetPlan, request.user, pk)
+        if plan is None:
+            return JsonResponse({'error': 'Budget plan not found.'}, status=404)
+    else:
+        plan = BudgetPlan()
+
+    category = _scoped_or_none(Category, request.user, request.POST.get('category'))
+    if category is None:
+        return JsonResponse({'error': 'Please select a valid category.'}, status=400)
+
+    monthly_income = _to_decimal(request.POST.get('monthly_income'))
+    allocated_amount = _to_decimal(request.POST.get('allocated_amount'))
+    if monthly_income is None or monthly_income < 0:
+        return JsonResponse({'error': 'Monthly income must be 0 or more.'}, status=400)
+    if allocated_amount is None or allocated_amount < 0:
+        return JsonResponse({'error': 'Allocated amount must be 0 or more.'}, status=400)
+
+    month = _to_month(request.POST.get('month'))
+    if month is None:
+        return JsonResponse({'error': 'A valid month is required.'}, status=400)
+
+    plan.category = category
+    plan.monthly_income = monthly_income
+    plan.allocated_amount = allocated_amount
+    plan.month = month
+    if not plan.pk:
+        plan.user = request.user
+    try:
+        plan.save()
+    except IntegrityError:
+        return JsonResponse({'error': 'A budget plan for that category and month already exists.'}, status=400)
+
+    messages.success(request, f'Budget plan has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': plan.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def budget_delete_ajax(request, pk):
+    plan = _scoped_or_none(BudgetPlan, request.user, pk)
+    if plan is None:
+        return JsonResponse({'error': 'Budget plan not found.'}, status=404)
+    plan.delete()
+    messages.success(request, 'Budget plan has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})
+
+
+@login_required(login_url='login')
+@require_POST
+def savings_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        goal = _scoped_or_none(SavingsGoal, request.user, pk)
+        if goal is None:
+            return JsonResponse({'error': 'Savings goal not found.'}, status=404)
+    else:
+        goal = SavingsGoal()
+
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'Goal name is required.'}, status=400)
+
+    target_amount = _to_decimal(request.POST.get('target_amount'))
+    current_amount = _to_decimal(request.POST.get('current_amount'), Decimal('0'))
+    if target_amount is None or target_amount <= 0:
+        return JsonResponse({'error': 'Target amount must be greater than 0.'}, status=400)
+    if current_amount is None or current_amount < 0:
+        return JsonResponse({'error': 'Current amount must be 0 or more.'}, status=400)
+
+    deadline = request.POST.get('deadline', '').strip()
+    if deadline:
+        deadline = _to_date(deadline)
+        if deadline is None:
+            return JsonResponse({'error': 'A valid deadline is required.'}, status=400)
+    else:
+        deadline = None
+
+    goal.name = name
+    goal.target_amount = target_amount
+    goal.current_amount = current_amount
+    goal.deadline = deadline
+    if not goal.pk:
+        goal.user = request.user
+    goal.save()
+
+    messages.success(request, f'Savings goal has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': goal.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def savings_delete_ajax(request, pk):
+    goal = _scoped_or_none(SavingsGoal, request.user, pk)
+    if goal is None:
+        return JsonResponse({'error': 'Savings goal not found.'}, status=404)
+    goal.delete()
+    messages.success(request, 'Savings goal has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})
+
+
+@login_required(login_url='login')
+@require_POST
+def grocery_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        item = _scoped_or_none(GroceryItem, request.user, pk)
+        if item is None:
+            return JsonResponse({'error': 'Grocery item not found.'}, status=404)
+    else:
+        item = GroceryItem()
+
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'Item name is required.'}, status=400)
+
+    quantity = request.POST.get('quantity', '1')
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Quantity must be a whole number.'}, status=400)
+    if quantity < 1:
+        return JsonResponse({'error': 'Quantity must be at least 1.'}, status=400)
+
+    estimated_price = _to_decimal(request.POST.get('estimated_price'), Decimal('0'))
+    if estimated_price is None or estimated_price < 0:
+        return JsonResponse({'error': 'Estimated price must be 0 or more.'}, status=400)
+
+    item.name = name
+    item.quantity = quantity
+    item.estimated_price = estimated_price
+    if not item.pk:
+        item.user = request.user
+    item.save()
+
+    messages.success(request, f'Grocery item has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': item.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def grocery_toggle_ajax(request, pk):
+    item = _scoped_or_none(GroceryItem, request.user, pk)
+    if item is None:
+        return JsonResponse({'error': 'Grocery item not found.'}, status=404)
+    item.is_purchased = not item.is_purchased
+    item.save()
+    return JsonResponse({'status': 'success', 'is_purchased': item.is_purchased})
+
+
+@login_required(login_url='login')
+@require_POST
+def grocery_delete_ajax(request, pk):
+    item = _scoped_or_none(GroceryItem, request.user, pk)
+    if item is None:
+        return JsonResponse({'error': 'Grocery item not found.'}, status=404)
+    item.delete()
+    messages.success(request, 'Grocery item has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})

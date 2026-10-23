@@ -7,6 +7,14 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.register_view, name='register'),
 
+    path('my-allowance/', views.my_allowance, name='my_allowance'),
+    path('expenses/', views.expenses_page, name='expenses'),
+    path('budget-planner/', views.budget_planner_page, name='budget_planner'),
+    path('savings-goals/', views.savings_goals_page, name='savings_goals'),
+    path('food-list/', views.food_list_page, name='food_list'),
+    path('reports/', views.reports_page, name='reports'),
+    path('profile/', views.profile_page, name='profile'),
+
     path('income/save/', views.income_save_ajax, name='income_save_ajax'),
     path('income/delete/<int:pk>/', views.income_delete_ajax, name='income_delete_ajax'),
     path('expense/save/', views.expense_save_ajax, name='expense_save_ajax'),

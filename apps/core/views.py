@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 
-from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, SavingsGoal
+from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, RecurringExpense, SavingsGoal
 
 User = get_user_model()
 
@@ -197,13 +197,112 @@ def home(request):
     budget_plans = BudgetPlan.objects.filter(user=user)
     savings_goals = SavingsGoal.objects.filter(user=user)
     grocery_items = GroceryItem.objects.filter(user=user)
+    recurring_expenses = RecurringExpense.objects.filter(user=user, is_active=True)
+    allowances = user.allowances.order_by('-date_received')
+
+    # Calculate weekly allowance total
+    from django.utils import timezone
+    import datetime
+    today = timezone.now().date()
+    start_of_week = today - datetime.timedelta(today.weekday())  # Monday
+    end_of_week = start_of_week + datetime.timedelta(days=6)  # Sunday
+    weekly_allowance = sum(
+        a.amount for a in allowances
+        if start_of_week <= a.date_received <= end_of_week
+    )
 
     total_income = sum(i.amount for i in incomes)
     total_expenses = sum(e.amount for e in expenses)
     balance = total_income - total_expenses
+    total_recurring = sum(r.amount for r in recurring_expenses)
+
+    # Budget vs actual tracking
+    budget_utilization = {}
+    for plan in budget_plans:
+        category_expenses = expenses.filter(category=plan.category)
+        spent = sum(e.amount for e in category_expenses)
+        allocated = plan.allocated_amount
+        if allocated > 0:
+            budget_utilization[plan.id] = min(100, (spent / allocated) * 100)
+        else:
+            budget_utilization[plan.id] = 0
+
+    # Monthly income and expenses summary
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    first_of_month = today.replace(day=1)
+    previous_month = (first_of_month - timedelta(days=1)).replace(day=1)
+
+    monthly_income = sum(
+        i.amount for i in incomes if i.date >= first_of_month
+    )
+    monthly_expenses = sum(
+        e.amount for e in expenses if e.date >= first_of_month
+    )
+    previous_month_expenses = sum(
+        e.amount for e in expenses if e.date >= previous_month and e.date < first_of_month
+    )
 
     recent_expenses = expenses.order_by('-date')[:5]
     recent_incomes = incomes.order_by('-date')[:5]
+
+    # Calculate expenses by category for doughnut chart
+    from collections import defaultdict
+    expenses_by_category = defaultdict(float)
+    food_expenses = 0
+    for exp in expenses:
+        if exp.category:
+            expenses_by_category[exp.category.name] += exp.amount
+        if exp.category and exp.category.category_type == 'need':
+            food_expenses += exp.amount
+
+    expenses_by_category_name = list(expenses_by_category.keys())
+    expenses_by_category_amount = list(expenses_by_category.values())
+
+    # Calculate weekly allowance data for bar chart (last 8 weeks)
+    from django.db.models import Sum
+    from django.utils import timezone
+    import datetime
+
+    weekly_allowance_data = []
+    weekly_expense_data = []
+    weekly_data_labels = []
+
+    today = timezone.now().date()
+    for i in range(7, -1, -1):
+        week_start = today - datetime.timedelta(days=today.weekday() + i*7)
+        week_end = week_start + datetime.timedelta(days=6)
+        label = week_start.strftime('%m/%d')
+
+        # Weekly allowance for this period
+        weekly_allowance_obj = allowances.filter(
+            date_received__gte=week_start,
+            date_received__lte=week_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        weekly_allowance_data.append(float(weekly_allowance_obj))
+
+        # Weekly expenses for this period
+        weekly_exp_obj = expenses.filter(
+            date__gte=week_start,
+            date__lte=week_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        weekly_expense_data.append(float(weekly_exp_obj))
+
+        weekly_data_labels.append(label)
+
+    # Recent allowance records (last 5)
+    recent_allowances = user.allowances.order_by('-date_received')[:5]
+
+    # Calculate savings goals totals
+    total_saved = 0
+    total_target = 0
+    for goal in savings_goals:
+        total_saved += float(goal.current_amount)
+        total_target += float(goal.target_amount)
+    if total_target > 0:
+        savings_pct = round(total_saved / total_target * 100)
+    else:
+        savings_pct = 0
 
     context = {
         'categories': categories,
@@ -217,8 +316,340 @@ def home(request):
         'recent_expenses': recent_expenses,
         'recent_incomes': recent_incomes,
         'grocery_items': grocery_items,
+        'total_recurring': total_recurring,
+        'budget_utilization': budget_utilization,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'previous_month_expenses': previous_month_expenses,
+        'weekly_allowance': weekly_allowance,
+        'expenses_by_category_name': expenses_by_category_name,
+        'expenses_by_category_amount': expenses_by_category_amount,
+        'food_expenses': food_expenses,
+        'recent_allowances': recent_allowances,
+        'weekly_allowance_data': weekly_allowance_data,
+        'weekly_expense_data': weekly_expense_data,
+        'weekly_data_labels': weekly_data_labels,
+        'savings_total_saved': total_saved,
+        'savings_total_target': total_target,
+        'savings_pct': savings_pct,
     }
     return render(request, 'home.html', context)
+
+
+def my_allowance(request):
+    """Display and manage the user's allowance records."""
+    user = request.user
+    allowances = user.allowances.order_by('-date_received')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_allowance':
+            Allowance.objects.create(
+                name=request.POST.get('name', 'Weekly Allowance'),
+                amount=request.POST.get('amount', 0),
+                allowance_type=request.POST.get('allowance_type', 'weekly'),
+                date_received=request.POST.get('date_received'),
+                description=request.POST.get('description', ''),
+                user=user,
+            )
+            messages.success(request, 'Allowance added.')
+            return redirect('my_allowance')
+
+    # Calculate weekly allowance total for the selected week
+    from django.db.models import Sum
+    from django.utils import timezone
+    import datetime
+
+    # Get the current week's allowance
+    today = timezone.now().date()
+    start_of_week = today - datetime.timedelta(today.weekday())  # Monday
+    end_of_week = start_of_week + datetime.timedelta(days=6)  # Sunday
+
+    weekly_allowance = allowances.filter(
+        date_received__gte=start_of_week,
+        date_received__lte=end_of_week
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    context = {
+        'allowances': allowances,
+        'weekly_allowance': weekly_allowance,
+        'today': today,
+        'start_of_week': start_of_week,
+        'end_of_week': end_of_week,
+    }
+    return render(request, 'my_allowance.html', context)
+
+
+def expenses_page(request):
+    """Display and manage expenses."""
+    user = request.user
+    expenses = user.expenses.order_by('-date')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_expense':
+            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            Expense.objects.create(
+                amount=request.POST.get('amount', 0),
+                description=request.POST.get('description', ''),
+                date=request.POST.get('date'),
+                category=category,
+                user=user,
+            )
+            messages.success(request, 'Expense added.')
+            return redirect('expenses')
+
+    categories = Category.objects.filter(user=user)
+    context = {
+        'expenses': expenses,
+        'categories': categories,
+    }
+    return render(request, 'expenses.html', context)
+
+
+def budget_planner_page(request):
+    """Budget planner interface."""
+    user = request.user
+    categories = Category.objects.filter(user=user)
+    budget_plans = BudgetPlan.objects.filter(user=user).order_by('-month')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_budget':
+            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            if category is None:
+                messages.error(request, 'Please select a valid category.')
+                return redirect('budget_planner')
+
+            monthly_income = _to_decimal(request.POST.get('monthly_income'))
+            allocated_amount = _to_decimal(request.POST.get('allocated_amount'))
+            if monthly_income is None or monthly_income < 0:
+                messages.error(request, 'Monthly income must be 0 or more.')
+                return redirect('budget_planner')
+            if allocated_amount is None or allocated_amount < 0:
+                messages.error(request, 'Allocated amount must be 0 or more.')
+                return redirect('budget_planner')
+
+            month = _to_month(request.POST.get('month'))
+            if month is None:
+                messages.error(request, 'A valid month is required.')
+                return redirect('budget_planner')
+
+            plan, created = BudgetPlan.objects.get_or_create(
+                category=category,
+                month=month,
+                user=user,
+                defaults={
+                    'monthly_income': monthly_income,
+                    'allocated_amount': allocated_amount,
+                }
+            )
+            if not created:
+                plan.monthly_income = monthly_income
+                plan.allocated_amount = allocated_amount
+                plan.save()
+            messages.success(request, f'Budget plan {"created" if created else "updated"} successfully.')
+            return redirect('budget_planner')
+
+    context = {
+        'categories': categories,
+        'budget_plans': budget_plans,
+    }
+    return render(request, 'budget_planner.html', context)
+
+
+def savings_goals_page(request):
+    """Display and manage savings goals with contribution functionality."""
+    user = request.user
+    savings_goals = user.savings_goals.order_by('-created_at')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_goal':
+            name = request.POST.get('name', '').strip()
+            if not name:
+                messages.error(request, 'Goal name is required.')
+                return redirect('savings_goals')
+
+            target_amount = _to_decimal(request.POST.get('target_amount'))
+            current_amount = _to_decimal(request.POST.get('current_amount'), Decimal('0'))
+            if target_amount is None or target_amount <= 0:
+                messages.error(request, 'Target amount must be greater than 0.')
+                return redirect('savings_goals')
+            if current_amount is None or current_amount < 0:
+                messages.error(request, 'Current amount must be 0 or more.')
+                return redirect('savings_goals')
+
+            deadline = request.POST.get('deadline', '').strip()
+            if deadline:
+                deadline = _to_date(deadline)
+                if deadline is None:
+                    messages.error(request, 'A valid deadline is required.')
+                    return redirect('savings_goals')
+            else:
+                deadline = None
+
+            SavingsGoal.objects.create(
+                name=name,
+                target_amount=target_amount,
+                current_amount=current_amount,
+                deadline=deadline,
+                user=user,
+            )
+            messages.success(request, 'Savings goal added.')
+            return redirect('savings_goals')
+        elif action == 'add_contribution':
+            goal_id = request.POST.get('goal_id')
+            goal = SavingsGoal.objects.filter(id=goal_id, user=user).first()
+            if goal is None:
+                messages.error(request, 'Savings goal not found.')
+                return redirect('savings_goals')
+
+            contribution_amount = _to_decimal(request.POST.get('contribution_amount'))
+            if contribution_amount is None or contribution_amount <= 0:
+                messages.error(request, 'Contribution amount must be greater than 0.')
+                return redirect('savings_goals')
+
+            goal.current_amount = Decimal(str(goal.current_amount)) + contribution_amount
+            goal.save()
+            messages.success(request, f'Contribution of ₱{contribution_amount|floatformat:2} added.')
+            return redirect('savings_goals')
+
+    context = {
+        'savings_goals': savings_goals,
+    }
+    return render(request, 'savings_goals.html', context)
+
+
+def food_list_page(request):
+    """Display and manage the food/grocery list."""
+    user = request.user
+    grocery_items = user.grocery_items.order_by('-created_at')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_grocery':
+            GroceryItem.objects.create(
+                name=request.POST.get('name', ''),
+                quantity=request.POST.get('quantity', 1),
+                estimated_price=request.POST.get('estimated_price', 0),
+                user=user,
+            )
+            messages.success(request, 'Grocery item added.')
+            return redirect('food_list')
+
+    context = {
+        'grocery_items': grocery_items,
+    }
+    return render(request, 'food_list.html', context)
+
+
+def reports_page(request):
+    """Display financial reports."""
+    user = request.user
+    incomes = user.incomes.order_by('-date')
+    expenses = user.expenses.order_by('-date')
+    savings_goals = user.savings_goals.order_by('-created_at')
+    budget_plans = user.budget_plans.order_by('-month')
+
+    from datetime import datetime, timedelta
+    from django.db.models import Sum
+
+    today = timezone.now().date()
+    first_of_month = today.replace(day=1)
+    previous_month = (first_of_month - timedelta(days=1)).replace(day=1)
+
+    monthly_income = sum(i.amount for i in incomes if i.date >= first_of_month)
+    monthly_expenses = sum(e.amount for e in expenses if e.date >= first_of_month)
+    previous_month_expenses = sum(e.amount for e in expenses if e.date >= previous_month and e.date < first_of_month)
+
+    total_income = sum(i.amount for i in incomes)
+    total_expenses = sum(e.amount for e in expenses)
+    balance = total_income - total_expenses
+
+    # Expenses by category
+    from apps.core.models import Category
+    category_stats = []
+    categories = Category.objects.filter(user=user)
+    for cat in categories:
+        cat_expenses = expenses.filter(category=cat)
+        cat_spent = sum(e.amount for e in cat_expenses)
+        category_stats.append({
+            'name': cat.name,
+            'type': cat.category_type,
+            'spent': cat_spent,
+        })
+
+    context = {
+        'incomes': incomes,
+        'expenses': expenses,
+        'savings_goals': savings_goals,
+        'budget_plans': budget_plans,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'previous_month_expenses': previous_month_expenses,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'balance': balance,
+        'category_stats': category_stats,
+    }
+    return render(request, 'reports.html', context)
+
+
+def profile_page(request):
+    """User profile page."""
+    user = request.user
+
+    if request.method == 'POST':
+        # Handle profile update
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+        if email:
+            user.email = email
+        user.save()
+        messages.success(request, 'Profile updated successfully.')
+        return redirect('profile')
+
+    context = {
+        'user': user,
+    }
+    return render(request, 'profile.html', context)
+
+
+def _to_decimal(value, default=None):
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return default
+
+
+def _to_date(value):
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_month(value):
+    for fmt in ('%Y-%m', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(value, fmt).date().replace(day=1)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+BUDGET_RULE = [
+    ('need', 'Needs', Decimal('0.50'), 'Essentials: food, fare, school supplies, and bills.'),
+    ('want', 'Wants', Decimal('0.30'), 'Non-essentials: eating out, load/data, games, and extras.'),
+    ('saving', 'Savings', Decimal('0.20'), 'Set this aside for your goals and emergencies.'),
+]
 
 
 @require_http_methods(['GET', 'POST'])
@@ -620,10 +1051,15 @@ def budget_advisor_ajax(request):
 
     categories = list(Category.objects.filter(user=request.user))
     grocery_items = GroceryItem.objects.filter(user=request.user)
+    expenses = Expense.objects.filter(user=request.user)
+    recurring_expenses = RecurringExpense.objects.filter(user=request.user, is_active=True)
 
     grocery_planned = sum(
         (item.estimated_price or Decimal('0')) * item.quantity for item in grocery_items
     )
+
+    actual_expenses = sum(e.amount for e in expenses)
+    recurring_monthly = sum(r.amount for r in recurring_expenses)
 
     buckets = []
     bucket_amounts = {}
@@ -682,6 +1118,8 @@ def budget_advisor_ajax(request):
 
     tips.append('Priority order: needs first, then savings, and wants last.')
 
+    effective_amount = amount - recurring_monthly
+
     return JsonResponse({
         'amount': float(amount),
         'buckets': buckets,
@@ -689,4 +1127,7 @@ def budget_advisor_ajax(request):
         'needs_amount': float(needs_amount),
         'food': {'budget': float(food_budget), 'items': food_items},
         'tips': tips,
+        'actual_expenses': float(actual_expenses),
+        'recurring_expenses': float(recurring_monthly),
+        'effective_amount': float(effective_amount),
     })

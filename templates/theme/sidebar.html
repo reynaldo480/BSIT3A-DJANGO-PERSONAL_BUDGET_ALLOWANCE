@@ -1,4 +1,4 @@
-<aside class="navbar navbar-vertical navbar-expand-lg navbar-dark dh-sidebar">
+<aside class="navbar navbar-vertical navbar-expand-lg navbar-dark dh-sidebar" style="background: #1a237e; height: 100vh;">
   <div class="container-fluid">
     <div class="navbar-brand navbar-brand-autodark dh-brand">
       <a href="." class="d-flex align-items-center gap-2 text-decoration-none">
@@ -7,7 +7,7 @@
         </span>
         <span class="lh-1">
           <span class="dh-brand-name">Project<span class="text-warning">V3</span></span>
-          <span class="dh-brand-sub">Management System</span>
+          <span class="dh-brand-sub">Personal Budget Allowance System</span>
         </span>
       </a>
     </div>
@@ -41,21 +41,66 @@
           </a>
         </li>
 
-        <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.app_name == 'users' %}active{% endif %}" href="{% url 'users:user_list' %}">
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'my_allowance' %}active{% endif %}" href="{% url 'my_allowance' %}">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
-              <i class="nav-icon fas fa-users"></i>
+              <i class="fa-solid fa-piggy-bank"></i>
             </span>
-            <span class="nav-link-title">Users</span>
+            <span class="nav-link-title">My Allowance</span>
           </a>
         </li>
 
-        <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.app_name == 'info' %}active{% endif %}" href="{% url 'info:info_list' %}">
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'expenses' %}active{% endif %}" href="{% url 'expenses' %}">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
-              <i class="nav-icon fas fa-address-card"></i>
+              <i class="fa-solid fa-receipt"></i>
             </span>
-            <span class="nav-link-title">Info</span>
+            <span class="nav-link-title">Expenses</span>
+          </a>
+        </li>
+
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'budget_planner' %}active{% endif %}" href="{% url 'budget_planner' %}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <i class="fa-solid fa-percent"></i>
+            </span>
+            <span class="nav-link-title">Budget Planner</span>
+          </a>
+        </li>
+
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'savings_goals' %}active{% endif %}" href="{% url 'savings_goals' %}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <i class="fa-solid fa-goal"></i>
+            </span>
+            <span class="nav-link-title">Savings Goals</span>
+          </a>
+        </li>
+
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'food_list' %}active{% endif %}" href="{% url 'food_list' %}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <i class="fa-solid fa-utensils"></i>
+            </span>
+            <span class="nav-link-title">Food / Grocery List</span>
+          </a>
+        </li>
+
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'reports' %}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <i class="fa-solid fa-chart-bar"></i>
+            </span>
+            <span class="nav-link-title">Reports</span>
+          </a>
+        </li>
+
+        <li class="nav-item mb-1">
+          <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <i class="fa-solid fa-user"></i>
+            </span>
+            <span class="nav-link-title">Profile</span>
           </a>
         </li>
 
@@ -77,7 +122,7 @@
               <span class="min-w-0 flex-grow-1">
                 <span class="dh-user-name">{{ user.username }}</span>
                 <span class="dh-user-role">
-                  {% if user.is_superuser %}Administrator{% elif user.is_authenticated %}Instructor{% endif %}
+                  {% if user.is_superuser %}Administrator{% elif user.is_authenticated %}Student{% endif %}
                 </span>
               </span>
             </a>

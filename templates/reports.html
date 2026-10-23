@@ -1,0 +1,167 @@
+{% extends "theme/base.html" %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header d-print-none" aria-label="Page header">
+    <div class="container-xl">
+      <div class="row align-items-center">
+        <div class="col">
+          <div class="page-pretitle">Reports</div>
+          <h2 class="page-title mb-0">Financial Reports</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Income Summary</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6">
+              <div class="h3 text-primary mb-0">₱{{ total_income|floatformat:2 }}</div>
+              <small class="text-muted">Total Income</small>
+            </div>
+            <div class="col-6 text-end">
+              <div class="h3 text-success mb-0">₱{{ balance|floatformat:2 }}</div>
+              <small class="text-muted">Remaining Balance</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Expense Summary</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6">
+              <div class="h3 text-danger mb-0">₱{{ total_expenses|floatformat:2 }}</div>
+              <small class="text-muted">Total Expenses</small>
+            </div>
+            <div class="col-6 text-end">
+              <div class="h3 text-warning mb-0">₱{{ monthly_expenses|floatformat:2 }}</div>
+              <small class="text-muted">This Month's Expenses</small>
+            </div>
+          </div>
+          <div class="mt-3">
+            <small class="text-muted">Previous Month: ₱{{ previous_month_expenses|floatformat:2 }}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Expenses by Category</h3>
+        </div>
+        <div class="card-body">
+          {% if category_stats %}
+          {% for stat in category_stats %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>{{ stat.name }} {{ stat.type }}</span>
+            <span class="text-muted">₱{{ stat.spent|floatformat:2 }}</span>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted">No category data available.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Savings Goals Overview</h3>
+        </div>
+        <div class="card-body">
+          {% if savings_goals %}
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead>
+                <tr>
+                  <th>Goal</th>
+                  <th class="text-end">Target</th>
+                  <th class="text-end">Saved</th>
+                  <th>Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for goal in savings_goals %}
+                <tr>
+                  <td>{{ goal.name }}</td>
+                  <td class="text-end">₱{{ goal.target_amount|floatformat:2 }}</td>
+                  <td class="text-end">₱{{ goal.current_amount|floatformat:2 }}</td>
+                  <td>
+                    <div class="progress" style="min-width: 80px;">
+                      <div class="progress-bar bg-success" style="width: {{ goal.progress_percentage|floatformat:0 }}%" role="progressbar"></div>
+                      <small class="text-muted">{{ goal.progress_percentage|floatformat:0 }}%</small>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No savings goals.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No savings goals yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Budget Plans</h3>
+        </div>
+        <div class="card-body">
+          {% if budget_plans %}
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Month</th>
+                  <th class="text-end">Allocated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for plan in budget_plans %}
+                <tr>
+                  <td>{{ plan.category }}</td>
+                  <td>{{ plan.month|date:"F Y" }}</td>
+                  <td class="text-end">₱{{ plan.allocated_amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted">No budget plans yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No budget plans yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

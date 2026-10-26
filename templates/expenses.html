@@ -37,6 +37,7 @@
                 <option value="">No categories available</option>
                 {% endfor %}
               </select>
+              {% if not categories %}<small class="form-hint">No categories yet — add one from the <a href="{% url 'dashboard' %}">Dashboard</a> first.</small>{% endif %}
             </div>
             <div class="col-md-6">
               <label class="form-label">Description</label>

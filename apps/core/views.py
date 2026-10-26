@@ -31,6 +31,20 @@ INVALID_LOGIN_MESSAGE = 'Invalid username or password.'
 LOCKED_MESSAGE = 'Too many failed attempts. Locked for 1 minute.'
 
 
+def _posted_pk(value):
+    """Parse a posted id; return None when blank or not a number."""
+    value = str(value or '').strip()
+    return int(value) if value.isdigit() else None
+
+
+def _user_category(user, value):
+    """Return the user's Category for a posted id, or None when blank/invalid."""
+    pk = _posted_pk(value)
+    if pk is None:
+        return None
+    return Category.objects.filter(pk=pk, user=user).first()
+
+
 def _reset_lock_state(request):
     request.session['failed_attempts'] = 0
     request.session['lock_time'] = None
@@ -169,7 +183,7 @@ def home(request):
             messages.success(request, 'Income added.')
 
         elif action == 'add_expense':
-            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            category = _user_category(user, request.POST.get('category'))
             Expense.objects.create(
                 amount=request.POST.get('amount', 0),
                 description=request.POST.get('description', ''),
@@ -189,13 +203,16 @@ def home(request):
             messages.success(request, 'Grocery item added.')
 
         elif action == 'toggle_grocery':
-            item = GroceryItem.objects.filter(id=request.POST.get('id'), user=user).first()
+            item_pk = _posted_pk(request.POST.get('id'))
+            item = GroceryItem.objects.filter(id=item_pk, user=user).first() if item_pk else None
             if item:
                 item.is_purchased = not item.is_purchased
                 item.save()
 
         elif action == 'delete_grocery':
-            GroceryItem.objects.filter(id=request.POST.get('id'), user=user).delete()
+            item_pk = _posted_pk(request.POST.get('id'))
+            if item_pk is not None:
+                GroceryItem.objects.filter(id=item_pk, user=user).delete()
 
         return redirect('dashboard')
 
@@ -398,11 +415,24 @@ def expenses_page(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add_expense':
-            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            category = _user_category(user, request.POST.get('category'))
+            if category is None:
+                messages.error(request, 'Please select a valid category.')
+                return redirect('expenses')
+            amount = _to_decimal(request.POST.get('amount'))
+            if amount is None or amount <= 0:
+                messages.error(request, 'Amount must be greater than 0.')
+                return redirect('expenses')
+
+            date = _to_date(request.POST.get('date'))
+            if date is None:
+                messages.error(request, 'A valid date is required.')
+                return redirect('expenses')
+
             Expense.objects.create(
-                amount=request.POST.get('amount', 0),
+                amount=amount,
                 description=request.POST.get('description', ''),
-                date=request.POST.get('date'),
+                date=date,
                 category=category,
                 user=user,
             )
@@ -427,7 +457,7 @@ def budget_planner_page(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add_budget':
-            category = Category.objects.filter(id=request.POST.get('category'), user=user).first()
+            category = _user_category(user, request.POST.get('category'))
             if category is None:
                 messages.error(request, 'Please select a valid category.')
                 return redirect('budget_planner')
@@ -703,6 +733,9 @@ def register_view(request):
 
 
 def _scoped_or_none(model, user, pk):
+    pk = _posted_pk(pk)
+    if pk is None:
+        return None
     return model.objects.filter(id=pk, user=user).first()
 
 

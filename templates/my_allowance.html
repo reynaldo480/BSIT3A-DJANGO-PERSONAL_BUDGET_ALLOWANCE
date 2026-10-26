@@ -91,10 +91,10 @@
               <td>{{ allowance.get_allowance_type_display }}</td>
               <td>
                 <div class="d-flex gap-1">
-                  <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#allowanceEditModal" data-mode="edit" data-title="Edit Allowance" data-id="{{ allowance.id }}" data-name="{{ allowance.name }}" data-amount="{{ allowance.amount }}" data-type="{{ allowance.get_allowance_type_display|lower }}" data-date="{{ allowance.date_received|date:'Y-m-d' }}" title="Edit">
+                  <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#allowanceEditModal" data-mode="edit" data-title="Edit Allowance" data-id="{{ allowance.id }}" data-name="{{ allowance.name }}" data-amount="{{ allowance.amount }}" data-allowance_type="{{ allowance.allowance_type }}" data-date_received="{{ allowance.date_received|date:'Y-m-d' }}" data-description="{{ allowance.description }}" title="Edit">
                     <i class="fas fa-edit text-primary"></i>
                   </button>
-                  <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'income_delete_ajax' allowance.id %}" data-name="allowance of ₱{{ allowance.amount|floatformat:2 }}" title="Delete">
+                  <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'allowance_delete_ajax' allowance.id %}" data-name="allowance '{{ allowance.name }}' of ₱{{ allowance.amount|floatformat:2 }}" title="Delete">
                     <i class="fas fa-trash-alt text-danger"></i>
                   </button>
                 </div>
@@ -118,32 +118,34 @@
         <h5 class="modal-title" data-modal-title>Edit Allowance</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form class="crud-form" data-url="{% url 'income_save_ajax' %}">
+      <form class="crud-form" data-url="{% url 'allowance_save_ajax' %}">
         {% csrf_token %}
         <input type="hidden" name="id">
-        <input type="hidden" name="action" value="add_allowance">
         <div class="modal-body">
           <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Name</label>
+              <input type="text" name="name" class="form-control" required>
+            </div>
             <div class="col-6">
               <label class="form-label">Amount</label>
               <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required>
             </div>
             <div class="col-6">
-              <label class="form-label">Source</label>
-              <select name="source" class="form-select">
-                <option value="allowance">Allowance</option>
-                <option value="part_time">Part-time Job</option>
-                <option value="gift">Gift</option>
-                <option value="other">Other</option>
+              <label class="form-label">Type</label>
+              <select name="allowance_type" class="form-select">
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
+                <option value="monthly">Monthly</option>
               </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Date Received</label>
+              <input type="date" name="date_received" class="form-control" required>
             </div>
             <div class="col-12">
               <label class="form-label">Description</label>
               <input type="text" name="description" class="form-control">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Date</label>
-              <input type="date" name="date" class="form-control" required>
             </div>
           </div>
         </div>

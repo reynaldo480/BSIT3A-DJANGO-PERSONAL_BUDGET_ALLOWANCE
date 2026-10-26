@@ -132,6 +132,10 @@ class SavingsGoal(models.Model):
             return 0
         return min(100, (self.current_amount / self.target_amount) * 100)
 
+    @property
+    def remaining_amount(self):
+        return max(0, self.target_amount - self.current_amount)
+
 
 class GroceryItem(models.Model):
     name = models.CharField(max_length=255)
@@ -151,3 +155,61 @@ class GroceryItem(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Allowance(models.Model):
+    ALLOWANCE_TYPES = [
+        ('weekly', 'Weekly'),
+        ('biweekly', 'Bi-weekly'),
+        ('monthly', 'Monthly'),
+    ]
+
+    name = models.CharField(max_length=255, default='Weekly Allowance')
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+    )
+    allowance_type = models.CharField(
+        max_length=10,
+        choices=ALLOWANCE_TYPES,
+        default='weekly',
+    )
+    date_received = models.DateField()
+    description = models.CharField(max_length=255, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='allowances',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tblallowance'
+        ordering = ['-date_received']
+
+    def __str__(self):
+        return f'{self.name} - {self.amount}'
+
+
+class RecurringExpense(models.Model):
+    name = models.CharField(max_length=255)
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+    )
+    is_active = models.BooleanField(default=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='recurring_expenses',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tblrecurringexpense'
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name} - {self.amount}'

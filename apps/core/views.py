@@ -13,8 +13,16 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 
-from apps.core.models import BudgetPlan, Category, Expense, GroceryItem, Income, RecurringExpense, SavingsGoal
-
+from apps.core.models import (
+Allowance,
+BudgetPlan,
+Category,
+Expense,
+GroceryItem,
+Income,
+RecurringExpense,
+SavingsGoal,
+)
 User = get_user_model()
 
 MAX_FAILED_ATTEMPTS = 5
@@ -336,6 +344,7 @@ def home(request):
     return render(request, 'home.html', context)
 
 
+@login_required(login_url='login')
 def my_allowance(request):
     """Display and manage the user's allowance records."""
     user = request.user
@@ -380,6 +389,7 @@ def my_allowance(request):
     return render(request, 'my_allowance.html', context)
 
 
+@login_required(login_url='login')
 def expenses_page(request):
     """Display and manage expenses."""
     user = request.user
@@ -407,6 +417,7 @@ def expenses_page(request):
     return render(request, 'expenses.html', context)
 
 
+@login_required(login_url='login')
 def budget_planner_page(request):
     """Budget planner interface."""
     user = request.user
@@ -458,6 +469,7 @@ def budget_planner_page(request):
     return render(request, 'budget_planner.html', context)
 
 
+@login_required(login_url='login')
 def savings_goals_page(request):
     """Display and manage savings goals with contribution functionality."""
     user = request.user
@@ -512,7 +524,7 @@ def savings_goals_page(request):
 
             goal.current_amount = Decimal(str(goal.current_amount)) + contribution_amount
             goal.save()
-            messages.success(request, f'Contribution of ₱{contribution_amount|floatformat:2} added.')
+            messages.success(request, f'Contribution of ₱{contribution_amount:.2f} added.')
             return redirect('savings_goals')
 
     context = {
@@ -521,6 +533,7 @@ def savings_goals_page(request):
     return render(request, 'savings_goals.html', context)
 
 
+@login_required(login_url='login')
 def food_list_page(request):
     """Display and manage the food/grocery list."""
     user = request.user
@@ -544,6 +557,7 @@ def food_list_page(request):
     return render(request, 'food_list.html', context)
 
 
+@login_required(login_url='login')
 def reports_page(request):
     """Display financial reports."""
     user = request.user
@@ -596,6 +610,7 @@ def reports_page(request):
     return render(request, 'reports.html', context)
 
 
+@login_required(login_url='login')
 def profile_page(request):
     """User profile page."""
     user = request.user
@@ -684,27 +699,7 @@ def register_view(request):
     return redirect('dashboard')
 
 
-def _to_decimal(value, default=None):
-    try:
-        return Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError):
-        return default
 
-
-def _to_date(value):
-    try:
-        return datetime.strptime(value, '%Y-%m-%d').date()
-    except (TypeError, ValueError):
-        return None
-
-
-def _to_month(value):
-    for fmt in ('%Y-%m', '%Y-%m-%d'):
-        try:
-            return datetime.strptime(value, fmt).date().replace(day=1)
-        except (TypeError, ValueError):
-            continue
-    return None
 
 
 def _scoped_or_none(model, user, pk):
@@ -1131,3 +1126,56 @@ def budget_advisor_ajax(request):
         'recurring_expenses': float(recurring_monthly),
         'effective_amount': float(effective_amount),
     })
+
+
+@login_required(login_url='login')
+@require_POST
+def allowance_save_ajax(request):
+    pk = request.POST.get('id')
+    if pk:
+        allowance = _scoped_or_none(Allowance, request.user, pk)
+        if allowance is None:
+            return JsonResponse({'error': 'Allowance record not found.'}, status=404)
+    else:
+        allowance = Allowance()
+
+    name = request.POST.get('name', 'Weekly Allowance').strip()
+    if not name:
+        name = 'Weekly Allowance'
+
+    amount = _to_decimal(request.POST.get('amount'))
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Amount must be greater than 0.'}, status=400)
+
+    allowance_type = request.POST.get('allowance_type', 'weekly')
+    valid_types = [c[0] for c in Allowance.ALLOWANCE_TYPES]
+    if allowance_type not in valid_types:
+        allowance_type = 'weekly'
+
+    date_str = request.POST.get('date_received') or request.POST.get('date')
+    date_val = _to_date(date_str)
+    if date_val is None:
+        return JsonResponse({'error': 'A valid date is required.'}, status=400)
+
+    allowance.name = name
+    allowance.amount = amount
+    allowance.allowance_type = allowance_type
+    allowance.date_received = date_val
+    allowance.description = request.POST.get('description', '').strip()
+    if not allowance.pk:
+        allowance.user = request.user
+    allowance.save()
+
+    messages.success(request, f'Allowance has been {"updated" if pk else "added"} successfully.')
+    return JsonResponse({'status': 'success', 'id': allowance.id})
+
+
+@login_required(login_url='login')
+@require_POST
+def allowance_delete_ajax(request, pk):
+    allowance = _scoped_or_none(Allowance, request.user, pk)
+    if allowance is None:
+        return JsonResponse({'error': 'Allowance record not found.'}, status=404)
+    allowance.delete()
+    messages.success(request, 'Allowance record has been deleted successfully.')
+    return JsonResponse({'status': 'deleted'})

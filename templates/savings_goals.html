@@ -1,4 +1,5 @@
 {% extends "theme/base.html" %}
+{% load core_tags %}
 {% block content %}
 <div class="container-xl">
   <div class="page-header d-print-none" aria-label="Page header">
@@ -82,7 +83,7 @@
                     </div>
                   </td>
                   <td>{{ goal.deadline|date:"M j, Y"|default:"-" }}</td>
-                  <td class="text-end">₱{{ goal.target_amount|subtract:goal.current_amount|floatformat:2 }}</td>
+                  <td class="text-end">₱{{ goal.remaining_amount|floatformat:2 }}</td>
                   <td>
                     <div class="d-flex gap-1">
                       <!-- Contribution Modal Trigger -->
@@ -92,7 +93,7 @@
                       <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#savingsEditModal" data-mode="edit" data-title="Edit Savings Goal" data-id="{{ goal.id }}" data-name="{{ goal.name }}" data-target_amount="{{ goal.target_amount }}" data-current_amount="{{ goal.current_amount }}" data-deadline="{{ goal.deadline|date:'Y-m-d' }}" title="Edit">
                         <i class="fas fa-edit text-primary"></i>
                       </button>
-                      <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'savings_delete_ajax' goal.id %}" data-name="savings goal "{{ goal.name }}"" title="Delete">
+                      <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'savings_delete_ajax' goal.id %}" data-name="savings goal '{{ goal.name }}'" title="Delete">
                         <i class="fas fa-trash-alt text-danger"></i>
                       </button>
                     </div>

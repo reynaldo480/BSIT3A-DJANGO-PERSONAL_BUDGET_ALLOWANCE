@@ -1,796 +1,311 @@
 {% extends "theme/base.html" %}
+{% load core_tags %}
 {% block content %}
 <div class="container-xl">
-  <div class="page-header d-print-none" aria-label="Page header">
+
+  <!-- Page header + period selector -->
+  <div class="page-header d-print-none">
     <div class="container-xl">
       <div class="row align-items-center">
         <div class="col">
           <div class="page-pretitle">Overview</div>
-          <div class="d-flex align-items-center gap-3 flex-wrap d-none d-md-flex">
-            <h2 class="page-title mb-0">Dashboard</h2>
+          <h2 class="page-title">Dashboard</h2>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+          <div class="btn-group">
+            <a href="?period=daily"  class="btn btn-sm {% if view_period == 'daily'   %}btn-primary{% else %}btn-outline-secondary{% endif %}">Day</a>
+            <a href="?period=weekly" class="btn btn-sm {% if view_period == 'weekly'  %}btn-primary{% else %}btn-outline-secondary{% endif %}">Week</a>
+            <a href="?period=monthly"class="btn btn-sm {% if view_period == 'monthly' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Month</a>
           </div>
-          <h2 class="page-title mb-0 d-md-none">Dashboard</h2>
+          <a href="{% url 'my_allowance' %}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> Add Allowance
+          </a>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row row-deck row-cards mb-3">
+  <!-- Budget warnings -->
+  {% if warnings %}
+  <div class="mb-3">
+    {% for w in warnings %}
+    <div class="alert alert-warning alert-dismissible py-2 mb-2">
+      <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ w }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Main balance cards ──────────────────────────────────────────────── -->
+  <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
-      <div class="card">
+      <div class="card card-sm">
         <div class="card-body">
-          <div class="subheader">Total Income</div>
-          <div class="h1 mb-0 text-success">₱{{ total_income|floatformat:2 }}</div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-primary text-white avatar me-3"><i class="fa-solid fa-piggy-bank"></i></span>
+            <div><div class="fw-medium">Total Allowance</div><div class="text-muted small">All received</div></div>
+          </div>
+          <div class="h2 mb-0 text-primary">₱{{ total_allowance|floatformat:2 }}</div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-      <div class="card">
+      <div class="card card-sm">
         <div class="card-body">
-          <div class="subheader">Total Expenses</div>
-          <div class="h1 mb-0 text-danger">₱{{ total_expenses|floatformat:2 }}</div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-success text-white avatar me-3"><i class="fa-solid fa-wallet"></i></span>
+            <div><div class="fw-medium">Available Balance</div><div class="text-muted small">Ready to spend/save</div></div>
+          </div>
+          <div class="h2 mb-0 {% if remaining_balance < 0 %}text-danger{% else %}text-success{% endif %}">
+            ₱{{ remaining_balance|floatformat:2 }}
+          </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-      <div class="card">
+      <div class="card card-sm">
         <div class="card-body">
-          <div class="subheader">Balance</div>
-          <div class="h1 mb-0 {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">₱{{ balance|floatformat:2 }}</div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-danger text-white avatar me-3"><i class="fa-solid fa-receipt"></i></span>
+            <div><div class="fw-medium">Total Expenses</div><div class="text-muted small">Purchased items</div></div>
+          </div>
+          <div class="h2 mb-0 text-danger">₱{{ total_expenses|floatformat:2 }}</div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-      <div class="card">
+      <div class="card card-sm">
         <div class="card-body">
-          <div class="subheader">Savings Goals</div>
-          <div class="h1 mb-0">{{ savings_goals|length }}</div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-warning text-white avatar me-3"><i class="fa-solid fa-bullseye"></i></span>
+            <div><div class="fw-medium">Total Savings</div><div class="text-muted small">In goals</div></div>
+          </div>
+          <div class="h2 mb-0 text-warning">₱{{ total_savings|floatformat:2 }}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card mb-3">
-    <div class="card-header">
-      <h3 class="card-title"><i class="fas fa-lightbulb text-warning me-2"></i>Budget Advisor</h3>
-    </div>
-    <div class="card-body">
-      <p class="text-muted">Enter your allowance or income and we'll suggest how to split it using the 50/30/20 rule, based on your categories and grocery list.</p>
-      <div class="row g-2 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label">Allowance / income for the period</label>
-          <div class="input-group">
-            <span class="input-group-text">₱</span>
-            <input type="number" step="0.01" min="0.01" id="advisorAmount" class="form-control" placeholder="e.g. 1000" value="{{ total_income|floatformat:2 }}">
-            <button class="btn btn-primary" type="button" id="advisorBtn">
-              <i class="fas fa-wand-magic-sparkles me-1"></i> Suggest
-            </button>
-          </div>
-        </div>
-      </div>
-      <div id="advisorError" class="alert alert-danger d-none mt-3 mb-0"></div>
-      <div id="advisorResult" class="mt-3 d-none">
-        <div class="row row-deck row-cards" id="advisorBuckets"></div>
-        <div id="advisorTips" class="mt-3"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row row-deck row-cards mb-3">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Quick Add Income</h3>
-        </div>
-        <div class="card-body">
-          <form method="post" class="row g-2">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_income">
-            <div class="col-6">
-              <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
-            </div>
-            <div class="col-6">
-              <select name="source" class="form-select">
-                <option value="allowance">Allowance</option>
-                <option value="part_time">Part-time Job</option>
-                <option value="gift">Gift</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="col-8">
-              <input type="text" name="description" class="form-control" placeholder="Description">
-            </div>
-            <div class="col-4">
-              <input type="date" name="date" class="form-control" value="{% now 'Y-m-d' %}" required>
-            </div>
-            <div class="col-12">
-              <button type="submit" class="btn btn-primary w-100">Add Income</button>
-            </div>
-          </form>
+  <!-- ── Period spending mini-cards ─────────────────────────────────────── -->
+  <div class="row row-deck row-cards mb-4">
+    <div class="col-4">
+      <div class="card card-sm border-start border-4 border-info">
+        <div class="card-body py-2">
+          <div class="text-muted small">Today</div>
+          <div class="h3 mb-0 text-info">₱{{ daily_spending|floatformat:2 }}</div>
         </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Quick Add Expense</h3>
+    <div class="col-4">
+      <div class="card card-sm border-start border-4 border-primary">
+        <div class="card-body py-2">
+          <div class="text-muted small">This Week <small class="d-block" style="font-size:.65rem;">{{ weekly_start|date:"M d" }}–{{ weekly_end|date:"M d" }}</small></div>
+          <div class="h3 mb-0 text-primary">₱{{ weekly_spending|floatformat:2 }}</div>
         </div>
-        <div class="card-body">
-          <form method="post" class="row g-2">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_expense">
-            <div class="col-6">
-              <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
-            </div>
-            <div class="col-6">
-              <select name="category" class="form-select">
-                {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% empty %}
-                <option value="">No categories</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-8">
-              <input type="text" name="description" class="form-control" placeholder="Description">
-            </div>
-            <div class="col-4">
-              <input type="date" name="date" class="form-control" value="{% now 'Y-m-d' %}" required>
-            </div>
-            <div class="col-12">
-              <button type="submit" class="btn btn-danger w-100">Add Expense</button>
-            </div>
-          </form>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card card-sm border-start border-4 border-warning">
+        <div class="card-body py-2">
+          <div class="text-muted small">This Month <small class="d-block" style="font-size:.65rem;">{{ monthly_start|date:"M Y" }}</small></div>
+          <div class="h3 mb-0 text-warning">₱{{ monthly_spending|floatformat:2 }}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row row-deck row-cards mb-3">
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Income</h3>
-          <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#incomeModal" data-mode="create" data-title="Add Income">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Source</th>
-                <th>Description</th>
-                <th class="text-end">Amount</th>
-                <th class="w-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for income in incomes %}
-              <tr>
-                <td>{{ income.date }}</td>
-                <td>{{ income.get_source_display }}</td>
-                <td>{{ income.description|default:"-" }}</td>
-                <td class="text-end">₱{{ income.amount|floatformat:2 }}</td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#incomeModal" data-mode="edit" data-title="Edit Income" data-id="{{ income.id }}" data-amount="{{ income.amount }}" data-source="{{ income.source }}" data-description="{{ income.description }}" data-date="{{ income.date|date:'Y-m-d' }}" title="Edit">
-                      <i class="fas fa-edit text-primary"></i>
-                    </button>
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'income_delete_ajax' income.id %}" data-name="income of ₱{{ income.amount|floatformat:2 }}" title="Delete">
-                      <i class="fas fa-trash-alt text-danger"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="5" class="text-muted">No income yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Expenses</h3>
-          <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#expenseModal" data-mode="create" data-title="Add Expense">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th class="text-end">Amount</th>
-                <th class="w-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for expense in expenses %}
-              <tr>
-                <td>{{ expense.date }}</td>
-                <td>{{ expense.category|default:"-" }}</td>
-                <td>{{ expense.description|default:"-" }}</td>
-                <td class="text-end">₱{{ expense.amount|floatformat:2 }}</td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#expenseModal" data-mode="edit" data-title="Edit Expense" data-id="{{ expense.id }}" data-amount="{{ expense.amount }}" data-category="{{ expense.category_id|default:'' }}" data-description="{{ expense.description }}" data-date="{{ expense.date|date:'Y-m-d' }}" title="Edit">
-                      <i class="fas fa-edit text-primary"></i>
-                    </button>
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'expense_delete_ajax' expense.id %}" data-name="expense of ₱{{ expense.amount|floatformat:2 }}" title="Delete">
-                      <i class="fas fa-trash-alt text-danger"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="5" class="text-muted">No expenses yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="row row-deck row-cards mb-4">
 
-  <div class="row row-deck row-cards mb-3">
+    <!-- ── Budget Progress ──────────────────────────────────────────────── -->
     <div class="col-lg-6">
-      <div class="card">
+      <div class="card h-100">
         <div class="card-header">
-          <h3 class="card-title">Categories</h3>
+          <h3 class="card-title">
+            <i class="fa-solid fa-chart-pie me-2 text-primary"></i>Budget Progress
+            <span class="badge bg-primary-lt text-primary ms-1 text-capitalize">{{ view_period }}</span>
+          </h3>
           <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#categoryModal" data-mode="create" data-title="Add Category">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th class="w-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for category in categories %}
-              <tr>
-                <td>{{ category.name }}</td>
-                <td><span class="badge bg-primary-lt text-primary">{{ category.get_category_type_display }}</span></td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal" data-mode="edit" data-title="Edit Category" data-id="{{ category.id }}" data-name="{{ category.name }}" data-category_type="{{ category.category_type }}" title="Edit">
-                      <i class="fas fa-edit text-primary"></i>
-                    </button>
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'category_delete_ajax' category.id %}" data-name="category &quot;{{ category.name }}&quot;" title="Delete">
-                      <i class="fas fa-trash-alt text-danger"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="3" class="text-muted">No categories yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Savings Goals</h3>
-          <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#savingsModal" data-mode="create" data-title="Add Savings Goal">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table">
-            <thead>
-              <tr>
-                <th>Goal</th>
-                <th class="text-end">Target</th>
-                <th class="text-end">Saved</th>
-                <th>Progress</th>
-                <th>Deadline</th>
-                <th class="w-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for goal in savings_goals %}
-              <tr>
-                <td>{{ goal.name }}</td>
-                <td class="text-end">₱{{ goal.target_amount|floatformat:2 }}</td>
-                <td class="text-end">₱{{ goal.current_amount|floatformat:2 }}</td>
-                <td>
-                  <div class="progress" style="min-width: 80px;">
-                    <div class="progress-bar bg-success" style="width: {{ goal.progress_percentage|floatformat:0 }}%" role="progressbar"></div>
-                  </div>
-                  <small class="text-muted">{{ goal.progress_percentage|floatformat:0 }}%</small>
-                </td>
-                <td>{{ goal.deadline|date:"M j, Y"|default:"-" }}</td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#savingsModal" data-mode="edit" data-title="Edit Savings Goal" data-id="{{ goal.id }}" data-name="{{ goal.name }}" data-target_amount="{{ goal.target_amount }}" data-current_amount="{{ goal.current_amount }}" data-deadline="{{ goal.deadline|date:'Y-m-d' }}" title="Edit">
-                      <i class="fas fa-edit text-primary"></i>
-                    </button>
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'savings_delete_ajax' goal.id %}" data-name="savings goal &quot;{{ goal.name }}&quot;" title="Delete">
-                      <i class="fas fa-trash-alt text-danger"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="6" class="text-muted">No savings goals yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row row-deck row-cards">
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Grocery / Food List</h3>
-          <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#groceryModal" data-mode="create" data-title="Add Grocery Item">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
+            <a href="{% url 'my_allowance' %}" class="btn btn-sm btn-ghost-secondary">Manage Plans</a>
           </div>
         </div>
         <div class="card-body">
-          <ul class="list-group list-group-flush">
-            {% for item in grocery_items %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <button type="button" class="btn btn-sm btn-link p-0" data-toggle-url="{% url 'grocery_toggle_ajax' item.id %}" title="Toggle purchased">
-                  {% if item.is_purchased %}
-                  <i class="fas fa-check-square text-success"></i>
-                  {% else %}
-                  <i class="far fa-square"></i>
-                  {% endif %}
-                </button>
-                <span class="{% if item.is_purchased %}text-muted text-decoration-line-through{% endif %}">
-                  {{ item.name }} ({{ item.quantity }})
+          {% if active_budget %}
+            <div class="d-flex justify-content-between text-muted small mb-3">
+              <span>{{ active_budget.period_start|date:"M d" }} – {{ active_budget.period_end|date:"M d, Y" }}</span>
+              <span>₱{{ active_budget.total_amount|floatformat:2 }} budget</span>
+            </div>
+            {% for row in budget_tracking %}
+            {% if row.planned > 0 %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="small fw-medium">{{ row.label }}</span>
+                <span class="small {% if row.over_budget %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                  ₱{{ row.spent|floatformat:2 }} / ₱{{ row.planned|floatformat:2 }}
                 </span>
               </div>
-              <div class="d-flex align-items-center gap-1">
-                <span class="me-1">₱{{ item.estimated_price|floatformat:2 }}</span>
-                <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#groceryModal" data-mode="edit" data-title="Edit Grocery Item" data-id="{{ item.id }}" data-name="{{ item.name }}" data-quantity="{{ item.quantity }}" data-estimated_price="{{ item.estimated_price }}" title="Edit">
-                  <i class="fas fa-edit text-primary"></i>
-                </button>
-                <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'grocery_delete_ajax' item.id %}" data-name="grocery item &quot;{{ item.name }}&quot;" title="Delete">
-                  <i class="fas fa-trash-alt text-danger"></i>
-                </button>
+              <div class="progress" style="height:6px;">
+                <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
+                     style="width:{{ row.pct }}%" role="progressbar"></div>
               </div>
-            </li>
-            {% empty %}
-            <li class="list-group-item text-muted">No items in your grocery list.</li>
+              <div class="d-flex justify-content-between mt-1">
+                <small class="text-muted">{{ row.pct }}% used</small>
+                <small class="{% if row.over_budget %}text-danger{% else %}text-muted{% endif %}">
+                  {% if row.over_budget %}Over ₱{{ row.spent|subtract:row.planned|floatformat:2 }}{% else %}₱{{ row.remaining|floatformat:2 }} left{% endif %}
+                </small>
+              </div>
+            </div>
+            {% endif %}
             {% endfor %}
-          </ul>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fa-solid fa-chart-pie fa-3x mb-3 d-block opacity-30"></i>
+            <p class="mb-2">No active budget plan for this period.</p>
+            <a href="{% url 'my_allowance' %}" class="btn btn-sm btn-primary">Create Budget Plan</a>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
+
+    <!-- ── Category Spending ─────────────────────────────────────────────── -->
     <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fa-solid fa-tags me-2 text-warning"></i>Spending by Category
+            <span class="badge bg-warning-lt text-warning ms-1 text-capitalize">{{ view_period }}</span>
+          </h3>
+        </div>
+        <div class="card-body">
+          {% if period_spending > 0 %}
+          <table class="table table-sm table-vcenter mb-0">
+            <tbody>
+              {% for cat_key, cat_label in cat_labels.items %}
+              {% with cat_amt=cat_spending|get_item:cat_key %}
+              {% if cat_amt and cat_amt > 0 %}
+              <tr>
+                <td class="small">{{ cat_label }}</td>
+                <td class="text-end small fw-medium">₱{{ cat_amt|floatformat:2 }}</td>
+                <td style="width:110px;">
+                  <div class="progress" style="height:5px;">
+                    <div class="progress-bar bg-warning"
+                         style="width:{{ cat_amt|pct_of:period_spending }}%"></div>
+                  </div>
+                </td>
+                <td class="text-muted small text-end">{{ cat_amt|pct_of:period_spending }}%</td>
+              </tr>
+              {% endif %}
+              {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fa-solid fa-tags fa-3x mb-2 d-block opacity-30"></i>
+            No spending recorded for this {{ view_period }}.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Recent Transactions + Goals ────────────────────────────────────── -->
+  <div class="row row-deck row-cards mb-4">
+    <div class="col-lg-8">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Budget Plans</h3>
+          <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Recent Transactions</h3>
           <div class="card-actions">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#budgetModal" data-mode="create" data-title="Add Budget Plan">
-              <i class="fas fa-plus-circle me-1"></i> Add
-            </button>
+            <a href="{% url 'transaction_list' %}" class="btn btn-sm btn-ghost-secondary">View All</a>
           </div>
         </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table">
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Month</th>
-                <th class="text-end">Allocated</th>
-                <th class="w-1">Actions</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th class="text-end">Amount</th>
+                <th class="text-end">Balance After</th>
               </tr>
             </thead>
             <tbody>
-              {% for plan in budget_plans %}
+              {% for txn in recent_transactions %}
               <tr>
-                <td>{{ plan.category }}</td>
-                <td>{{ plan.month|date:"F Y" }}</td>
-                <td class="text-end">₱{{ plan.allocated_amount|floatformat:2 }}</td>
+                <td class="text-muted small">{{ txn.date|date:"M d" }}</td>
                 <td>
-                  <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#budgetModal" data-mode="edit" data-title="Edit Budget Plan" data-id="{{ plan.id }}" data-category="{{ plan.category_id }}" data-monthly_income="{{ plan.monthly_income }}" data-allocated_amount="{{ plan.allocated_amount }}" data-month="{{ plan.month|date:'Y-m' }}" title="Edit">
-                      <i class="fas fa-edit text-primary"></i>
-                    </button>
-                    <button type="button" class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="{% url 'budget_delete_ajax' plan.id %}" data-name="budget plan for {{ plan.category }}" title="Delete">
-                      <i class="fas fa-trash-alt text-danger"></i>
-                    </button>
-                  </div>
+                  {% if txn.transaction_type == 'allowance_added' %}
+                    <span class="badge bg-primary-lt text-primary">Allowance</span>
+                  {% elif txn.transaction_type == 'purchase' %}
+                    <span class="badge bg-danger-lt text-danger">Purchase</span>
+                  {% elif txn.transaction_type == 'savings_transfer' %}
+                    <span class="badge bg-warning-lt text-warning">Savings</span>
+                  {% elif txn.transaction_type == 'refund' %}
+                    <span class="badge bg-success-lt text-success">Refund</span>
+                  {% endif %}
                 </td>
+                <td>{{ txn.description }}</td>
+                <td class="text-end {% if txn.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {% if txn.amount >= 0 %}+{% endif %}₱{{ txn.amount|floatformat:2 }}
+                </td>
+                <td class="text-end">₱{{ txn.balance_after|floatformat:2 }}</td>
               </tr>
               {% empty %}
-              <tr><td colspan="4" class="text-muted">No budget plans yet.</td></tr>
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                  <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>
+                  No transactions yet. Start by adding your allowance.
+                </td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
     </div>
-  </div>
 
-</div>
-
-<div class="modal modal-blur fade" id="incomeModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Income</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form class="crud-form" data-url="{% url 'income_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-6">
-              <label class="form-label">Amount</label>
-              <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Source</label>
-              <select name="source" class="form-select">
-                <option value="allowance">Allowance</option>
-                <option value="part_time">Part-time Job</option>
-                <option value="gift">Gift</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Description</label>
-              <input type="text" name="description" class="form-control">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Date</label>
-              <input type="date" name="date" class="form-control" required>
-            </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-bullseye me-2 text-warning"></i>My Goals</h3>
+          <div class="card-actions">
+            <a href="{% url 'goals' %}" class="btn btn-sm btn-ghost-secondary">Manage</a>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal modal-blur fade" id="expenseModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Expense</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form class="crud-form" data-url="{% url 'expense_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-6">
-              <label class="form-label">Amount</label>
-              <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required>
+        <div class="card-body">
+          {% for goal in savings_goals %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="fw-medium small">{{ goal.name }}</span>
+              {% if goal.status == 'completed' %}
+                <span class="badge bg-success-lt text-success">Done</span>
+              {% else %}
+                <span class="badge bg-warning-lt text-warning">Active</span>
+              {% endif %}
             </div>
-            <div class="col-6">
-              <label class="form-label">Category</label>
-              <select name="category" class="form-select">
-                <option value="">-- None --</option>
-                {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% endfor %}
-              </select>
+            <div class="progress mb-1" style="height:5px;">
+              <div class="progress-bar bg-warning" style="width:{{ goal.progress_percentage|floatformat:0 }}%"></div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Description</label>
-              <input type="text" name="description" class="form-control">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Date</label>
-              <input type="date" name="date" class="form-control" required>
+            <div class="d-flex justify-content-between">
+              <small class="text-muted">₱{{ goal.current_amount|floatformat:2 }}</small>
+              <small class="text-muted">₱{{ goal.target_amount|floatformat:2 }}</small>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-danger">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal modal-blur fade" id="categoryModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Category</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form class="crud-form" data-url="{% url 'category_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">Name</label>
-              <input type="text" name="name" class="form-control" required>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Type</label>
-              <select name="category_type" class="form-select">
-                <option value="need">Need</option>
-                <option value="want">Want</option>
-                <option value="saving">Saving</option>
-              </select>
-            </div>
+          {% empty %}
+          <div class="text-center text-muted py-3">
+            <i class="fa-solid fa-bullseye fa-2x mb-2 d-block opacity-50"></i>
+            <p class="small mb-2">No goals yet.</p>
+            <a href="{% url 'goals' %}" class="btn btn-sm btn-warning">Create a Goal</a>
           </div>
+          {% endfor %}
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal modal-blur fade" id="budgetModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Budget Plan</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form class="crud-form" data-url="{% url 'budget_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">Category</label>
-              <select name="category" class="form-select" required>
-                <option value="">-- Select --</option>
-                {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Monthly Income</label>
-              <input type="number" step="0.01" min="0" name="monthly_income" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Allocated Amount</label>
-              <input type="number" step="0.01" min="0" name="allocated_amount" class="form-control" required>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Month</label>
-              <input type="month" name="month" class="form-control" required>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
     </div>
   </div>
+
 </div>
-
-<div class="modal modal-blur fade" id="savingsModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Savings Goal</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form class="crud-form" data-url="{% url 'savings_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">Goal Name</label>
-              <input type="text" name="name" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Target Amount</label>
-              <input type="number" step="0.01" min="0.01" name="target_amount" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Amount Saved</label>
-              <input type="number" step="0.01" min="0" name="current_amount" class="form-control" value="0">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Deadline <span class="text-muted">(optional)</span></label>
-              <input type="date" name="deadline" class="form-control">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal modal-blur fade" id="groceryModal" tabindex="-1" data-crud>
-  <div class="modal-dialog modal-md modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" data-modal-title>Add Grocery Item</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form class="crud-form" data-url="{% url 'grocery_save_ajax' %}">
-        {% csrf_token %}
-        <input type="hidden" name="id">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">Item Name</label>
-              <input type="text" name="name" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Quantity</label>
-              <input type="number" min="1" name="quantity" class="form-control" value="1" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Estimated Price</label>
-              <input type="number" step="0.01" min="0" name="estimated_price" class="form-control" value="0">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-(function () {
-  function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
-  }
-  const csrftoken = getCookie('csrftoken');
-
-  // Budget Advisor
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function peso(value) {
-    return '₱' + Number(value).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
-
-  function renderAdvisor(data) {
-    const colorMap = {need: 'primary', want: 'warning', saving: 'success'};
-    const bucketsEl = document.getElementById('advisorBuckets');
-
-    bucketsEl.innerHTML = data.buckets.map(function (bucket) {
-      const color = colorMap[bucket.type] || 'primary';
-      const cats = bucket.categories.length
-        ? '<ul class="list-unstyled mb-0 mt-2">' +
-            bucket.categories.map(function (c) {
-              return '<li class="text-muted"><i class="fas fa-angle-right me-1"></i>' +
-                escapeHtml(c.name) + ': <strong>' + peso(c.amount) + '</strong></li>';
-            }).join('') +
-          '</ul>'
-        : '<p class="text-muted mb-0 mt-2">No categories of this type yet.</p>';
-      const examples = '<div class="mt-3 pt-3 border-top">' +
-        '<div class="text-uppercase text-muted small fw-bold mb-2">Kinds of things</div>' +
-        '<ul class="list-unstyled mb-0">' +
-        bucket.examples.map(function (e) {
-          return '<li class="mb-2"><i class="fas fa-circle-check text-' + color + ' me-1"></i>' +
-            '<span class="fw-medium">' + escapeHtml(e.name) + '</span>' +
-            '<div class="text-muted small ms-4">' + escapeHtml(e.note) + '</div></li>';
-        }).join('') +
-        '</ul></div>';
-      return '<div class="col-md-4"><div class="card h-100"><div class="card-body d-flex flex-column">' +
-        '<div class="d-flex justify-content-between align-items-center mb-2">' +
-        '<span class="h2 mb-0 text-' + color + '">' + bucket.percent + '%</span>' +
-        '<span class="badge bg-' + color + '-lt text-' + color + '">' + escapeHtml(bucket.label) + '</span>' +
-        '</div>' +
-        '<div class="h1 mb-2">' + peso(bucket.amount) + '</div>' +
-        '<div class="text-muted small">' + escapeHtml(bucket.tip) + '</div>' + cats +
-        '<div class="mt-auto">' + examples + '</div>' +
-        '</div></div></div>';
-    }).join('');
-
-    document.getElementById('advisorTips').innerHTML =
-      '<div class="alert alert-info mb-3"><h4 class="alert-title">Suggestions</h4><ul class="mb-0">' +
-      data.tips.map(function (tip) { return '<li>' + escapeHtml(tip) + '</li>'; }).join('') +
-      '</ul></div>' +
-      foodPlanHtml(data.food);
-
-    document.getElementById('advisorResult').classList.remove('d-none');
-  }
-
-  function foodPlanHtml(food) {
-    if (!food || !food.items || !food.items.length) return '';
-    return '<div class="card"><div class="card-header">' +
-      '<h3 class="card-title">Food budget plan</h3>' +
-      '<div class="card-subtitle">A suggested ₱' + Number(food.budget).toFixed(2) +
-      ' food budget within your needs. Buy food in these groups:</div>' +
-      '</div><div class="card-body"><div class="row g-3">' +
-      food.items.map(function (item) {
-        return '<div class="col-6 col-md-3"><div class="text-muted">' + escapeHtml(item.name) + '</div>' +
-          '<div class="h2 mb-0">' + peso(item.amount) + '</div>' +
-          '<div class="text-muted small">' + item.percent + '% of food budget</div></div>';
-      }).join('') +
-      '</div></div></div>';
-  }
-
-  const advisorBtn = document.getElementById('advisorBtn');
-  if (advisorBtn) {
-    const advisorAmount = document.getElementById('advisorAmount');
-    const advisorError = document.getElementById('advisorError');
-    advisorBtn.addEventListener('click', function () {
-      advisorError.classList.add('d-none');
-
-      fetch("{% url 'budget_advisor_ajax' %}", {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': csrftoken,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({amount: advisorAmount.value}),
-      })
-      .then(async function (resp) {
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
-        return data;
-      })
-      .then(renderAdvisor)
-      .catch(function (err) {
-        advisorError.textContent = err.message;
-        advisorError.classList.remove('d-none');
-      });
-    });
-  }
-})();
-</script>
 {% endblock %}

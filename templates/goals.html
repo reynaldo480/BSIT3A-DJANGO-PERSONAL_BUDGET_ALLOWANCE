@@ -1,0 +1,262 @@
+{% extends "theme/base.html" %}
+{% load core_tags %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header d-print-none">
+    <div class="container-xl">
+      <div class="row align-items-center">
+        <div class="col">
+          <div class="page-pretitle">Finances</div>
+          <h2 class="page-title">Goals</h2>
+        </div>
+        <div class="col-auto d-flex gap-2 align-items-center">
+          <span class="badge bg-success-lt text-success fs-5 px-3 py-2">
+            Balance: ₱{{ balance|floatformat:2 }}
+          </span>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+            <i class="fa-solid fa-plus me-1"></i> New Goal
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not savings_goals %}
+  <div class="card">
+    <div class="card-body text-center py-6">
+      <i class="fa-solid fa-bullseye fa-4x mb-3 d-block text-warning opacity-50"></i>
+      <h3>No Goals Yet</h3>
+      <p class="text-muted">Create a savings goal (like a Motor, Phone, or Laptop) and start saving toward it.</p>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+        <i class="fa-solid fa-plus me-1"></i> Create Your First Goal
+      </button>
+    </div>
+  </div>
+  {% else %}
+
+  <div class="row row-deck row-cards">
+    {% for entry in goals_with_data %}
+    {% with goal=entry.goal contribs=entry.contributions %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fa-solid fa-bullseye me-2 {% if goal.status == 'completed' %}text-success{% else %}text-warning{% endif %}"></i>
+            {{ goal.name }}
+          </h3>
+          <div class="card-actions">
+            {% if goal.status == 'completed' %}
+              <span class="badge bg-success">Completed</span>
+            {% else %}
+              <span class="badge bg-warning-lt text-warning">In Progress</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Progress -->
+          <div class="row mb-3">
+            <div class="col-6">
+              <div class="text-muted small">Saved</div>
+              <div class="h3 mb-0 text-primary">₱{{ goal.current_amount|floatformat:2 }}</div>
+            </div>
+            <div class="col-6 text-end">
+              <div class="text-muted small">Target</div>
+              <div class="h3 mb-0">₱{{ goal.target_amount|floatformat:2 }}</div>
+            </div>
+          </div>
+          <div class="progress mb-2" style="height: 8px;">
+            <div class="progress-bar {% if goal.status == 'completed' %}bg-success{% else %}bg-warning{% endif %}"
+                 style="width: {{ goal.progress_percentage|floatformat:0 }}%" role="progressbar"
+                 aria-valuenow="{{ goal.progress_percentage|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <small class="text-muted">{{ goal.progress_percentage|floatformat:1 }}% complete</small>
+            <small class="text-muted">₱{{ goal.remaining_amount|floatformat:2 }} remaining</small>
+          </div>
+          {% if goal.deadline %}
+          <div class="mb-3">
+            <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i>Target Date: {{ goal.deadline|date:"M d, Y" }}</small>
+          </div>
+          {% endif %}
+
+          <!-- Contribution History accordion -->
+          <div class="accordion accordion-flush" id="history-{{ goal.id }}">
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed px-0 py-2 bg-transparent text-muted small fw-medium" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#contribs-{{ goal.id }}">
+                  <i class="fa-solid fa-history me-1"></i> View Savings History ({{ contribs|length }})
+                </button>
+              </h2>
+              <div id="contribs-{{ goal.id }}" class="accordion-collapse collapse">
+                <div class="accordion-body px-0 pt-0">
+                  {% if contribs %}
+                  <div class="table-responsive">
+                    <table class="table table-sm table-vcenter">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Note</th>
+                          <th class="text-end">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for c in contribs %}
+                        <tr>
+                          <td class="text-muted">{{ c.date|date:"M d, Y" }}</td>
+                          <td>{{ c.note|default:"-" }}</td>
+                          <td class="text-end text-success fw-medium">+₱{{ c.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                  <p class="text-muted small mb-0">No contributions yet.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if goal.status != 'completed' %}
+        <div class="card-footer">
+          <button type="button" class="btn btn-warning w-100"
+                  data-bs-toggle="modal" data-bs-target="#addSavingsModal"
+                  data-goal-id="{{ goal.id }}" data-goal-name="{{ goal.name }}"
+                  data-goal-remaining="{{ goal.remaining_amount|floatformat:2 }}">
+            <i class="fa-solid fa-plus me-1"></i> Add Savings
+          </button>
+        </div>
+        {% endif %}
+
+        <div class="card-footer d-flex gap-2">
+          <form method="post" class="w-100" onsubmit="return confirm('Delete goal \'{{ goal.name }}\'? All contributions will be refunded to your balance.');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_goal">
+            <input type="hidden" name="goal_id" value="{{ goal.id }}">
+            <button type="submit" class="btn btn-ghost-danger w-100 btn-sm">
+              <i class="fa-solid fa-trash me-1"></i> Delete Goal
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal modal-blur fade" id="addGoalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-bullseye me-2 text-warning"></i>New Savings Goal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_goal">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label required">Goal Name</label>
+              <input type="text" name="name" class="form-control" placeholder="e.g. Motor, New Phone, Laptop, Emergency Fund" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label required">Target Amount (₱)</label>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                <input type="number" name="target_amount" class="form-control" placeholder="0.00" min="0.01" step="0.01" required>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Target Date <span class="text-muted">(optional)</span></label>
+              <input type="date" name="deadline" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="fa-solid fa-plus me-1"></i> Create Goal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Savings (Contribution) Modal -->
+<div class="modal modal-blur fade" id="addSavingsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="savingsModalTitle"><i class="fa-solid fa-piggy-bank me-2 text-primary"></i>Add Savings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_contribution">
+        <input type="hidden" name="goal_id" id="savingsGoalId">
+        <div class="modal-body">
+          <div class="alert alert-info mb-3">
+            <i class="fa-solid fa-info-circle me-2"></i>
+            Available balance: <strong>₱{{ balance|floatformat:2 }}</strong>
+          </div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Goal</label>
+              <input type="text" id="savingsGoalName" class="form-control" readonly>
+            </div>
+            <div class="col-12">
+              <label class="form-label required">Amount to Add (₱)</label>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                <input type="number" name="contribution_amount" class="form-control" placeholder="0.00" min="0.01" step="0.01" required>
+              </div>
+              <small class="text-muted" id="savingsRemainingHint"></small>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Note <span class="text-muted">(optional)</span></label>
+              <input type="text" name="note" class="form-control" placeholder="e.g. From this week's allowance">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-piggy-bank me-1"></i> Add Savings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const savingsModal = document.getElementById('addSavingsModal');
+    if (savingsModal) {
+      savingsModal.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        if (!btn) return;
+        document.getElementById('savingsGoalId').value = btn.dataset.goalId || '';
+        document.getElementById('savingsGoalName').value = btn.dataset.goalName || '';
+        const rem = btn.dataset.goalRemaining || '';
+        const hint = document.getElementById('savingsRemainingHint');
+        if (hint) hint.textContent = rem ? `₱${rem} still needed to reach target` : '';
+        // Reset amount field
+        const amtField = savingsModal.querySelector('[name=contribution_amount]');
+        if (amtField) amtField.value = '';
+      });
+    }
+  });
+</script>
+{% endblock %}
+{% endblock %}

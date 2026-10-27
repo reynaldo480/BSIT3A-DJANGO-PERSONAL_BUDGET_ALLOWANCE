@@ -1,0 +1,144 @@
+Feature Enhancement: Automatic Personal Budget Allowance Planner
+
+Please enhance my existing Django project called Personal Budget Allowance by adding an Automatic Allowance Budget Planner.
+
+1. Main Feature: My Allowance
+
+Create a feature called My Allowance where students can enter the total amount of money they receive.
+
+Example:
+
+- Total Allowance: ₱1,000
+- Budget Period: Weekly or Monthly
+- Start Date: User-selected date
+- Savings Goal: Optional amount, such as ₱200
+
+When the student clicks Generate Budget, the system should automatically calculate and distribute the allowance across the selected period.
+
+2. Automatic Budget Calculation
+
+The system should divide the allowance into these categories:
+
+- Food
+- Transportation
+- School Expenses
+- Savings
+- Emergency Fund
+- Other Expenses
+
+Example input:
+
+Total allowance: ₱1,000
+Budget period: 1 week
+Savings goal: ₱200
+
+Example generated budget:
+
+Category| Budget
+Food| ₱350
+Transportation| ₱200
+School Expenses| ₱100
+Savings| ₱200
+Emergency Fund| ₱100
+Other Expenses| ₱50
+Total| ₱1,000
+
+These are example allocations only. Allow the system to adjust the amounts based on the student's preferences and needs. The total of all categories must always equal the entered allowance.
+
+3. Weekly and Monthly Budget Plans
+
+Allow students to select either Weekly or Monthly.
+
+For a weekly budget:
+
+- Show the available budget for each day.
+- Display suggested daily spending limits.
+- Calculate the remaining balance after expenses.
+- Show a warning when spending exceeds the daily or category budget.
+
+For a monthly budget:
+
+- Divide the allowance into weekly and daily spending plans.
+- Account for the number of days in the selected month.
+- Show the remaining weekly and monthly balances.
+- Help students avoid spending all their allowance too early.
+
+For example, if a student enters ₱1,000 for one week, the system should calculate a daily spending limit based on the amount remaining after savings and other planned allocations.
+
+4. Expense Tracking
+
+Allow students to record expenses with:
+
+- Expense name
+- Amount in Philippine pesos (₱)
+- Category
+- Date
+- Optional description
+
+Automatically update:
+
+- Total expenses
+- Remaining allowance
+- Remaining budget per category
+- Daily, weekly, and monthly spending totals
+
+Do not allow an expense to silently disappear or cause incorrect balance calculations.
+
+5. Dashboard Design
+
+Add a clean, modern, student-friendly dashboard displaying:
+
+- Total Allowance
+- Total Spent
+- Remaining Balance
+- Savings Goal and Progress
+- Category Budget Breakdown
+- Daily Spending Limit
+- Recent Expenses
+- Budget Warnings
+
+Use simple CSS and responsive layouts. Use Philippine peso formatting throughout the system.
+
+6. Django Requirements
+
+Work with my existing project instead of creating a new project.
+
+- Use Django and Python.
+- Use the existing database configuration.
+- Use Django models for allowances, budget categories, and expenses where appropriate.
+- Use Django views, URL routes, and HTML templates.
+- Use the existing authentication system so each student can access only their own allowance and expenses.
+- Use Django forms or proper server-side validation.
+- Use Python's Decimal type for money calculations to avoid floating-point errors.
+- Ensure all calculations are performed and validated on the server.
+- Prevent negative allowances and invalid expense amounts.
+- Keep the existing admin interface and other working features intact.
+- Do not delete existing data, overwrite unrelated files, or break existing functionality.
+- Do not create duplicate models, URLs, or templates if suitable ones already exist.
+
+7. Automatic Budget Rules
+
+When the student enters an allowance and selects a period, the system must:
+
+1. Validate the allowance amount and selected period.
+2. Reserve the student's chosen savings goal, if any.
+3. Allocate the remaining money across the budget categories.
+4. Calculate daily and weekly spending recommendations.
+5. Save the generated budget to the database.
+6. Display the generated plan on the dashboard.
+7. Recalculate the remaining balances whenever expenses are added or edited.
+8. Display clear warnings when the student exceeds a budget.
+9. Ensure that the total allocation never exceeds the available allowance.
+10. Allow students to regenerate or adjust a budget without duplicating records or losing their expense history.
+
+If the savings goal is greater than the total allowance, show a validation message and ask the student to adjust the amount.
+
+8. Expected Result
+
+When a student enters ₱1,000, selects Weekly, and clicks Generate Budget, the system should automatically create a complete seven-day spending plan.
+
+When the student enters a monthly allowance, it should create a monthly plan instead.
+
+The student should be able to see how much money to spend, how much to save, and how much remains throughout the selected period.
+
+Important: First inspect my existing project structure and understand the current models, views, templates, URLs, and database. Then implement the feature step by step, reuse existing code where possible, and test the complete workflow. Do not merely provide instructions or sample code—make the changes directly in my existing project and explain which files were changed.

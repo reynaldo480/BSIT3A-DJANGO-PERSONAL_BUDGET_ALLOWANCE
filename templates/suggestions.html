@@ -1,0 +1,265 @@
+{% extends "theme/base.html" %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header d-print-none">
+    <div class="container-xl">
+      <div class="row align-items-center">
+        <div class="col">
+          <div class="page-pretitle">Tools</div>
+          <h2 class="page-title">Suggestions</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Advisor Card -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fa-solid fa-lightbulb text-warning me-2"></i>Budget Advisor (50/30/20 Rule)</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        Enter your allowance amount and we'll suggest how to split it using the 50/30/20 rule:
+        <strong>50% Needs</strong>, <strong>30% Wants</strong>, <strong>20% Savings</strong>.
+        Click <strong>Save</strong> on any suggestion to keep it in your saved list.
+      </p>
+      <div class="row g-2 align-items-end mb-3">
+        <div class="col-md-5">
+          <label class="form-label">Allowance / Budget Amount</label>
+          <div class="input-group">
+            <span class="input-group-text">₱</span>
+            <input type="number" step="0.01" min="0.01" id="advisorAmount" class="form-control" placeholder="e.g. 1000"
+                   value="{{ balance|floatformat:2 }}">
+            <button class="btn btn-primary" type="button" id="advisorBtn">
+              <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Get Suggestions
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="advisorError" class="alert alert-danger d-none mb-0"></div>
+      <div id="advisorResult" class="d-none mt-3">
+        <div class="row row-deck row-cards mb-3" id="advisorBuckets"></div>
+        <div id="advisorTips" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Suggestions -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fa-solid fa-bookmark text-primary me-2"></i>Saved Suggestions</h3>
+    </div>
+    <div class="card-body">
+      {% if saved_suggestions %}
+      <div class="row row-cards" id="savedSuggestionsList">
+        {% for s in saved_suggestions %}
+        <div class="col-md-6 col-lg-4" id="saved-{{ s.id }}">
+          <div class="card card-sm border">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-primary-lt text-primary">{{ s.category|default:"General" }}</span>
+                <button class="btn btn-sm btn-ghost-danger delete-suggestion" data-pk="{{ s.id }}"
+                        data-url="{% url 'delete_suggestion_ajax' s.id %}" title="Remove">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <h5 class="card-title mb-1">{{ s.title }}</h5>
+              <p class="text-muted small mb-0">{{ s.body }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-4" id="emptySuggestions">
+        <i class="fa-solid fa-bookmark fa-3x mb-3 d-block opacity-30"></i>
+        <p class="text-muted">No saved suggestions yet. Use the Budget Advisor above and click <strong>Save</strong> on any tip.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+  const csrf = getCookie('csrftoken');
+
+  const advisorBtn = document.getElementById('advisorBtn');
+  const advisorError = document.getElementById('advisorError');
+  const advisorResult = document.getElementById('advisorResult');
+  const advisorBuckets = document.getElementById('advisorBuckets');
+  const advisorTips = document.getElementById('advisorTips');
+
+  const bucketColors = { need: 'blue', want: 'orange', saving: 'green' };
+  const bucketIcons = { need: 'fa-house', want: 'fa-star', saving: 'fa-piggy-bank' };
+
+  function showError(msg) {
+    advisorError.textContent = msg;
+    advisorError.classList.remove('d-none');
+    advisorResult.classList.add('d-none');
+  }
+
+  function renderBuckets(data) {
+    advisorError.classList.add('d-none');
+    advisorBuckets.innerHTML = '';
+    advisorTips.innerHTML = '';
+
+    data.buckets.forEach(function (b) {
+      const color = bucketColors[b.type] || 'primary';
+      const icon = bucketIcons[b.type] || 'fa-circle';
+      const examplesHtml = b.examples.map(e =>
+        `<li class="mb-1"><strong>${e.name}</strong><br><span class="text-muted small">${e.note}</span></li>`
+      ).join('');
+
+      const categoriesHtml = b.categories.length
+        ? '<div class="mt-2 pt-2 border-top"><small class="text-muted fw-medium">Your categories:</small>' +
+          b.categories.map(c => `<div class="d-flex justify-content-between"><small>${c.name}</small><small>₱${c.amount.toFixed(2)}</small></div>`).join('') +
+          '</div>'
+        : '';
+
+      const saveBtn = `<button class="btn btn-sm btn-outline-${color} mt-2 save-suggestion-btn"
+        data-title="${b.label} (₱${b.amount.toFixed(2)})"
+        data-body="${b.tip} Suggested allocation: ₱${b.amount.toFixed(2)} (${b.percent}%)"
+        data-category="${b.label}">
+        <i class="fa-solid fa-bookmark me-1"></i> Save
+      </button>`;
+
+      advisorBuckets.innerHTML += `
+        <div class="col-md-4">
+          <div class="card card-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div><i class="fa-solid ${icon} text-${color} me-1"></i><strong>${b.label}</strong></div>
+                <span class="badge bg-${color}-lt text-${color}">${b.percent}%</span>
+              </div>
+              <div class="h2 mb-1 text-${color}">₱${b.amount.toFixed(2)}</div>
+              <p class="text-muted small mb-2">${b.tip}</p>
+              <ul class="list-unstyled mb-0 small">${examplesHtml}</ul>
+              ${categoriesHtml}
+              ${saveBtn}
+            </div>
+          </div>
+        </div>`;
+    });
+
+    if (data.tips && data.tips.length) {
+      let tipsHtml = '<div class="card card-sm"><div class="card-body"><h4 class="card-title"><i class="fa-solid fa-circle-info text-info me-2"></i>Tips</h4><ul class="mb-0">';
+      data.tips.forEach(t => { tipsHtml += `<li class="mb-1">${t}</li>`; });
+      tipsHtml += '</ul></div></div>';
+      advisorTips.innerHTML = tipsHtml;
+    }
+
+    // Re-bind save buttons
+    document.querySelectorAll('.save-suggestion-btn').forEach(bindSaveBtn);
+
+    advisorResult.classList.remove('d-none');
+  }
+
+  advisorBtn && advisorBtn.addEventListener('click', function () {
+    const amount = document.getElementById('advisorAmount').value;
+    if (!amount || parseFloat(amount) <= 0) { showError('Enter a valid amount greater than 0.'); return; }
+    advisorBtn.disabled = true;
+    advisorBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Loading…';
+
+    const fd = new FormData();
+    fd.append('amount', amount);
+
+    fetch('{% url "budget_advisor_ajax" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf },
+      body: fd,
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { showError(data.error); return; }
+      renderBuckets(data);
+    })
+    .catch(() => showError('Could not load suggestions. Please try again.'))
+    .finally(() => {
+      advisorBtn.disabled = false;
+      advisorBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i> Get Suggestions';
+    });
+  });
+
+  function bindSaveBtn(btn) {
+    btn.addEventListener('click', function () {
+      const title = btn.dataset.title;
+      const body = btn.dataset.body;
+      const category = btn.dataset.category;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>';
+
+      const fd = new FormData();
+      fd.append('title', title);
+      fd.append('body', body);
+      fd.append('category', category);
+
+      fetch('{% url "save_suggestion_ajax" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf },
+        body: fd,
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'saved') {
+          btn.classList.remove('btn-outline-blue', 'btn-outline-orange', 'btn-outline-green', 'btn-outline-primary', 'btn-outline-warning', 'btn-outline-success');
+          btn.classList.add('btn-success');
+          btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Saved!';
+          showToast(data.message, 'success');
+          // Reload saved list without full page reload
+          window.location.reload();
+        } else if (data.status === 'duplicate') {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-bookmark me-1"></i> Already Saved';
+          showToast(data.message, 'info');
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-bookmark me-1"></i> Save';
+          showToast(data.error || 'Could not save.', 'danger');
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bookmark me-1"></i> Save';
+      });
+    });
+  }
+
+  function showToast(msg, type) {
+    const div = document.createElement('div');
+    div.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    div.style.cssText = 'bottom:1rem;right:1rem;z-index:9999;min-width:260px;';
+    div.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(div);
+    setTimeout(() => { div.remove(); }, 4000);
+  }
+
+  // Delete saved suggestion
+  document.querySelectorAll('.delete-suggestion').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!confirm('Remove this saved suggestion?')) return;
+      btn.disabled = true;
+      fetch(btn.dataset.url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'deleted') {
+          const card = document.getElementById('saved-' + btn.dataset.pk);
+          if (card) card.remove();
+        }
+      })
+      .catch(() => { btn.disabled = false; });
+    });
+  });
+});
+</script>
+{% endblock %}
+{% endblock %}

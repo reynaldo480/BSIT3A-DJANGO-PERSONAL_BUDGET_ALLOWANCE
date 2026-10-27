@@ -1,14 +1,9 @@
 {% if messages %}
 {% for message in messages %}
-<div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}info{% endif %} alert-dismissible fade show" role="alert">
-  <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %} alert-icon" aria-hidden="true"></i>
-  <div>
-    <h4 class="alert-heading">{% if message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Warning{% else %}Success{% endif %}</h4>
-    <div class="alert-description">
-      {{ message }}
-    </div>
-  </div>
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
+  <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'warning' %}fa-triangle-exclamation{% elif message.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %} mt-1 flex-shrink-0" style="font-size:.9rem;"></i>
+  <div style="font-size:.845rem;">{{ message }}</div>
+  <button type="button" class="btn-close ms-auto flex-shrink-0" data-bs-dismiss="alert" aria-label="Close" style="font-size:.75rem;"></button>
 </div>
 {% endfor %}
 {% endif %}

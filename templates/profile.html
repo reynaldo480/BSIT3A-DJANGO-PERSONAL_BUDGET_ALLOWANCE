@@ -1,70 +1,88 @@
 {% extends "theme/base.html" %}
+{% block title %}Profile — BudgetTrack{% endblock %}
 {% block content %}
-<div class="container-xl">
-  <div class="page-header d-print-none" aria-label="Page header">
-    <div class="container-xl">
-      <div class="row align-items-center">
-        <div class="col">
-          <div class="page-pretitle">Profile</div>
-          <h2 class="page-title mb-0">User Profile</h2>
+<div class="container-xl pb-4" style="max-width:700px;">
+  <div class="page-header">
+    <div class="page-pretitle">Account</div>
+    <h2 class="page-title">Profile Settings</h2>
+  </div>
+
+  <!-- Profile card -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-user-circle me-2 text-primary"></i>Profile Information</div>
+    </div>
+    <div class="card-body">
+      <!-- Avatar + username row -->
+      <div class="d-flex align-items-center gap-4 mb-4 pb-3" style="border-bottom:1px solid var(--bt-border);">
+        <div style="width:4.5rem;height:4.5rem;border-radius:1.25rem;
+                    background:linear-gradient(135deg,#f79009 0%,#f04438 100%);
+                    display:flex;align-items:center;justify-content:center;
+                    color:#fff;font-size:1.75rem;font-weight:800;
+                    box-shadow:0 6px 18px rgba(247,144,9,.4);flex-shrink:0;">
+          {{ user.username|first|upper }}
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;">{{ user.get_full_name|default:user.username }}</div>
+          <div style="font-size:.82rem;color:var(--bt-text-muted);">@{{ user.username }}</div>
+          <div class="mt-1">
+            {% if user.is_superuser %}
+              <span class="badge bg-primary-lt">Administrator</span>
+            {% else %}
+              <span class="badge bg-secondary-lt">Student</span>
+            {% endif %}
+            {% if user.is_active %}
+              <span class="badge bg-success-lt ms-1">Active</span>
+            {% else %}
+              <span class="badge bg-danger-lt ms-1">Inactive</span>
+            {% endif %}
+          </div>
         </div>
       </div>
+
+      <!-- Edit form -->
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-6">
+          <label class="form-label">First Name</label>
+          <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}" placeholder="First name" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}" placeholder="Last name" required>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-envelope fa-sm"></i></span>
+            <input type="email" name="email" class="form-control" value="{{ user.email }}" placeholder="your@email.com" required>
+          </div>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <div class="row row-deck row-cards mb-3">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Edit Profile</h3>
-        </div>
-        <div class="card-body">
-          <form method="post" class="row g-3">
-            {% csrf_token %}
-            <div class="col-md-6">
-              <label class="form-label">First Name</label>
-              <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Last Name</label>
-              <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Email</label>
-              <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
-            </div>
-            <div class="col-12">
-              <button type="submit" class="btn btn-primary w-100">Update Profile</button>
-            </div>
-          </form>
-        </div>
-      </div>
+  <!-- Account details card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-circle-info me-2"></i>Account Details</div>
     </div>
-  </div>
-
-  <div class="row row-deck row-cards mb-3">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Account Information</h3>
-        </div>
-        <div class="card-body">
-          <dl class="row">
-            <dt class="col-sm-3">Username</dt>
-            <dd class="col-sm-9">{{ user.username }}</dd>
-            <dt class="col-sm-3">Date Joined</dt>
-            <dd class="col-sm-9">{{ user.date_joined|date:"F j, Y" }}</dd>
-            <dt class="col-sm-3">Role</dt>
-            <dd class="col-sm-9">
-              {% if user.is_superuser %}Administrator{% else %}Student{% endif %}
-            </dd>
-            <dt class="col-sm-3">Status</dt>
-            <dd class="col-sm-9">
-              {% if user.is_active %}Active{% else %}Inactive{% endif %}
-            </dd>
-          </dl>
-        </div>
-      </div>
+    <div class="card-body">
+      <dl class="row g-2 mb-0">
+        <dt class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Username</dt>
+        <dd class="col-sm-8" style="font-size:.845rem;font-weight:500;">{{ user.username }}</dd>
+        <dt class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Date Joined</dt>
+        <dd class="col-sm-8" style="font-size:.845rem;">{{ user.date_joined|date:"F j, Y" }}</dd>
+        <dt class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Last Login</dt>
+        <dd class="col-sm-8" style="font-size:.845rem;">{{ user.last_login|date:"F j, Y g:i A"|default:"Never" }}</dd>
+        <dt class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Role</dt>
+        <dd class="col-sm-8" style="font-size:.845rem;">{% if user.is_superuser %}Administrator{% else %}Student{% endif %}</dd>
+      </dl>
     </div>
   </div>
 </div>

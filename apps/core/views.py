@@ -294,6 +294,8 @@ def home(request):
     savings_goals = SavingsGoal.objects.filter(user=user)
     recent_activity = ActivityLog.objects.filter(user=user).order_by('-timestamp')[:12]
 
+    ai_insights = _build_ai_insights(user, vp, today)
+
     return render(request, 'home.html', {
         'total_allowance': total_allowance, 'total_expenses': total_expenses,
         'total_savings': total_savings, 'remaining_balance': remaining_balance,
@@ -308,6 +310,7 @@ def home(request):
         'recent_activity': recent_activity, 'today': today,
         'weekly_start': ws, 'weekly_end': we,
         'monthly_start': ms, 'monthly_end': me,
+        'ai': ai_insights,
     })
 
 # ── My Allowance ───────────────────────────────────────────────────────────
@@ -904,3 +907,120 @@ def delete_suggestion_ajax(request, pk):
 @require_POST
 def budget_advisor_ajax(request):
     return budget_suggest_ajax(request)
+
+
+# ── Smart Budget Insights AJAX ─────────────────────────────────────────────
+# Returns recommendation engine output as JSON for the dashboard panel.
+
+@login_required(login_url='login')
+@require_POST
+def budget_insights_ajax(request):
+    """
+    POST params:
+        amount   – total allowance (required)
+        period   – daily | weekly | monthly (default weekly)
+        food, transportation, school_expenses, personal_needs,
+        savings, emergency_fund, other  – planned allocations (all optional, default 0)
+        savings_target  – desired savings amount (optional, default 0)
+
+    Returns a JSON object with the full engine analysis result.
+    """
+    from apps.core.ai_engine import BudgetRecommendationEngine
+
+    amount = _dec(request.POST.get('amount'))
+    period = request.POST.get('period', 'weekly')
+    if period not in ('daily', 'weekly', 'monthly'):
+        period = 'weekly'
+
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Enter an allowance amount greater than 0.'}, status=400)
+
+    cats = ['food', 'transportation', 'school_expenses',
+            'personal_needs', 'savings', 'emergency_fund', 'other']
+    allocations = {}
+    for cat in cats:
+        v = _dec(request.POST.get(cat, '0'), Decimal('0'))
+        allocations[cat] = max(Decimal('0'), v)
+
+    savings_target = _dec(request.POST.get('savings_target', '0'), Decimal('0'))
+
+    # Also pull in actual spending history for the current period
+    today = timezone.now().date()
+    ps, pe = _period_dates(period, today)
+    history = _spending_by_cat(request.user, ps, pe)
+
+    engine = BudgetRecommendationEngine(
+        total_allowance=amount,
+        period=period,
+        allocations=allocations,
+        spending_history=history,
+        savings_target=max(Decimal('0'), savings_target),
+    )
+    result = engine.analyze()
+
+    # Convert Decimal → float for JSON serialisation
+    def _jsonify(v):
+        if isinstance(v, Decimal):
+            return float(v)
+        if isinstance(v, dict):
+            return {k: _jsonify(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [_jsonify(x) for x in v]
+        return v
+
+    return JsonResponse(_jsonify(result))
+
+
+# ── Dashboard AI Insights context helper ──────────────────────────────────
+
+def _build_ai_insights(user, view_period: str, today) -> dict:
+    """
+    Build budget insights for the dashboard without a form submission.
+    Uses the user's active budget plan if one exists, otherwise uses
+    the total allowance with smart default splits.
+    """
+    from apps.core.ai_engine import BudgetRecommendationEngine
+
+    total_allowance = (
+        Allowance.objects.filter(user=user, is_deleted=False)
+        .aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    )
+
+    # Try to find an active budget plan for the current period
+    ps, pe = _period_dates(view_period, today)
+    active_budget = (
+        AllowanceBudget.objects
+        .filter(user=user, period=view_period, period_start__lte=today, period_end__gte=today)
+        .order_by('-created_at')
+        .first()
+    )
+
+    if active_budget:
+        allocations = active_budget.get_allocations()
+        plan_amount = active_budget.total_amount
+    else:
+        plan_amount = total_allowance
+        allocations = _suggest(plan_amount, view_period) if plan_amount > 0 else {}
+
+    history = _spending_by_cat(user, ps, pe)
+
+    if plan_amount == Decimal('0'):
+        return {
+            'has_insights': False,
+            'no_allowance': True,
+        }
+
+    engine = BudgetRecommendationEngine(
+        total_allowance=plan_amount,
+        period=view_period,
+        allocations=allocations,
+        spending_history=history,
+        savings_target=allocations.get('savings', Decimal('0')),
+    )
+    result = engine.analyze()
+    result['has_insights'] = True
+    result['no_allowance'] = False
+    result['using_active_plan'] = bool(active_budget)
+    result['period_start'] = ps
+    result['period_end'] = pe
+    return result

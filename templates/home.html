@@ -133,7 +133,212 @@
     </div>
   </div>
 
-  <!-- ── Budget progress + Category spending (equal heights) ─ -->
+  <!-- ── AI Budget Insights ────────────────────────────────────────────── -->
+  {% if ai.has_insights %}
+  <div class="row g-3 mb-3" style="align-items:stretch;">
+
+    <!-- Forecast + Sufficiency card -->
+    <div class="col-lg-4 d-flex">
+      <div class="card w-100 bt-ai-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-brain me-2" style="color:var(--bt-primary);"></i>
+            Allowance Forecast
+            <span class="badge bg-primary-lt ms-2" style="font-size:.68rem;">AI Estimate</span>
+          </div>
+        </div>
+        <div class="card-body d-flex flex-column gap-3">
+
+          <!-- Status badge -->
+          <div class="d-flex align-items-center gap-3">
+            <div class="bt-forecast-ring bt-forecast-ring--{{ ai.status_color }}">
+              <span class="bt-forecast-pct">{{ ai.sufficiency_pct }}<small>%</small></span>
+            </div>
+            <div>
+              <div class="fw-700" style="font-size:1rem;color:var(--bt-text-primary);">
+                {{ ai.forecast_label }}
+              </div>
+              <div class="text-muted" style="font-size:.78rem;">Budget sufficiency</div>
+            </div>
+          </div>
+
+          <!-- Summary line -->
+          <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.6;">
+            {{ ai.summary_line }}
+          </p>
+
+          <!-- Key numbers -->
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="bt-mini-stat">
+                <div class="bms-label">Daily Limit</div>
+                <div class="bms-value text-primary">₱{{ ai.daily_limit|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="bt-mini-stat">
+                <div class="bms-label">Proj. Savings</div>
+                <div class="bms-value text-success">₱{{ ai.projected_savings|floatformat:2 }}</div>
+              </div>
+            </div>
+            {% if ai.projected_shortage > 0 %}
+            <div class="col-12">
+              <div class="bt-mini-stat bt-mini-stat--danger">
+                <div class="bms-label">Budget Shortage</div>
+                <div class="bms-value text-danger">₱{{ ai.projected_shortage|floatformat:2 }}</div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if not ai.using_active_plan %}
+          <div class="text-muted" style="font-size:.72rem;">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            Based on smart defaults. <a href="{% url 'my_allowance' %}">Create a budget plan</a> for personalised insights.
+          </div>
+          {% else %}
+          <div class="text-muted" style="font-size:.72rem;">
+            <i class="fa-solid fa-check-circle me-1 text-success"></i>
+            Based on your active {{ view_period }} budget plan.
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended Allocation card -->
+    <div class="col-lg-4 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-sliders me-2" style="color:var(--bt-success);"></i>
+            Recommended Allocation
+          </div>
+          <div class="card-actions">
+            <span class="text-muted" style="font-size:.72rem;">₱{{ ai.total_allowance|floatformat:2 }} {{ view_period }}</span>
+          </div>
+        </div>
+        <div class="card-body" style="padding-top:.6rem;">
+          {% for cat, amt in ai.recommended_splits.items %}
+          {% if amt > 0 %}
+          <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.8rem;">
+            <span style="color:var(--bt-text-secondary);">
+              {% if cat == 'food' %}🍱 Food
+              {% elif cat == 'transportation' %}🚌 Transportation
+              {% elif cat == 'school_expenses' %}📚 School Expenses
+              {% elif cat == 'personal_needs' %}🧴 Personal Needs
+              {% elif cat == 'savings' %}💰 Savings
+              {% elif cat == 'emergency_fund' %}🛡️ Emergency Fund
+              {% else %}📦 Other{% endif %}
+            </span>
+            <span class="fw-600">₱{{ amt|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+          <div class="mt-2 pt-2" style="border-top:1px solid var(--bt-border);font-size:.72rem;color:var(--bt-text-muted);">
+            <i class="fa-solid fa-lightbulb me-1 text-warning"></i>
+            These are estimates based on recommended student budget ratios.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Optimization Tips card -->
+    <div class="col-lg-4 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-lightbulb me-2" style="color:var(--bt-warning);"></i>
+            Budget Optimization Tips
+          </div>
+        </div>
+        <div class="card-body bt-tips-body">
+          {% for tip in ai.tips %}
+          <div class="bt-tip d-flex gap-2 align-items-start">
+            <i class="fa-solid {{ tip.icon }} {{ tip.color }} mt-1 flex-shrink-0" style="font-size:.85rem;"></i>
+            <span style="font-size:.8rem;line-height:1.55;color:var(--bt-text-secondary);">{{ tip.text }}</span>
+          </div>
+          {% empty %}
+          <div class="bt-empty">
+            <div class="bt-empty-sub">Add a budget plan to receive personalised tips.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Allocation Review (full width) -->
+  {% if ai.allocation_review %}
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-chart-bar me-2 text-primary"></i>
+            Budget Allocation Review
+            <span class="badge bg-secondary-lt ms-2" style="font-size:.68rem;">vs Recommended Ranges</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            {% for row in ai.allocation_review %}
+            <div class="col-sm-6 col-lg-4">
+              <div class="bt-alloc-review bt-alloc-review--{{ row.verdict }}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-600" style="font-size:.82rem;">{{ row.label }}</span>
+                  <span class="badge
+                    {% if row.verdict == 'ideal' %}bg-success-lt text-success
+                    {% elif row.verdict == 'high' %}bg-danger-lt text-danger
+                    {% else %}bg-warning-lt text-warning{% endif %}"
+                    style="font-size:.68rem;">
+                    {{ row.actual_pct }}%
+                    {% if row.verdict == 'ideal' %}✓{% elif row.verdict == 'high' %}↑{% else %}↓{% endif %}
+                  </span>
+                </div>
+                <div class="progress mb-1" style="height:4px;">
+                  <div class="progress-bar
+                    {% if row.verdict == 'ideal' %}bg-success
+                    {% elif row.verdict == 'high' %}bg-danger
+                    {% else %}bg-warning{% endif %}"
+                    style="width:{{ row.actual_pct }}%" role="progressbar"></div>
+                </div>
+                <div style="font-size:.72rem;color:var(--bt-text-muted);">{{ row.tip }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% elif ai.no_allowance %}
+  <!-- Prompt to add allowance when none exists -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="card bt-ai-card bt-ai-card--empty">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="bt-ai-empty-icon"><i class="fa-solid fa-brain"></i></div>
+          <div>
+            <div class="fw-600 mb-1">AI Budget Insights</div>
+            <div class="text-muted" style="font-size:.82rem;">
+              Add your allowance to receive personalised budget recommendations, forecasting, and optimization tips.
+            </div>
+          </div>
+          <a href="{% url 'my_allowance' %}" class="btn btn-primary btn-sm ms-auto flex-shrink-0">
+            <i class="fa-solid fa-plus me-1"></i>Add Allowance
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Budget progress + Category spending ───────────────────────────── -->
   <div class="row g-3 mb-3" style="align-items:stretch;">
     <!-- Budget progress -->
     <div class="col-lg-6 d-flex">

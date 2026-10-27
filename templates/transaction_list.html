@@ -1,103 +1,152 @@
 {% extends "theme/base.html" %}
-{% block title %}Transaction List — BudgetTrack{% endblock %}
+{% block title %}Activity List — BudgetTrack{% endblock %}
 {% block content %}
 <div class="container-xl pb-4">
   <div class="page-header">
     <div class="row align-items-center">
       <div class="col">
         <div class="page-pretitle">History</div>
-        <h2 class="page-title">Transaction List</h2>
+        <h2 class="page-title">Complete Activity History</h2>
       </div>
       <div class="col-auto">
-        <span class="badge {% if balance > 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}" style="font-size:.88rem;padding:.35rem .85rem;">
+        <span class="badge {% if balance >= 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}" style="font-size:.88rem;padding:.35rem .85rem;">
           Balance: ₱{{ balance|floatformat:2 }}
         </span>
       </div>
     </div>
   </div>
 
-  <!-- Filter bar -->
+  <!-- Filters -->
   <div class="bt-filter-bar mb-4">
     <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label">Transaction Type</label>
+      <div class="col-md-3">
+        <label class="form-label">Activity Type</label>
         <select name="type" class="form-select form-select-sm">
-          <option value="">All Types</option>
-          {% for value, label in transaction_types %}
+          <option value="">All Activities</option>
+          {% for value, label in activity_types %}
           <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label class="form-label">From Date</label>
         <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label class="form-label">To Date</label>
         <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Category / keyword</label>
+        <input type="text" name="category" class="form-control form-control-sm" value="{{ cat_filter }}" placeholder="e.g. Food, Savings…">
+      </div>
       <div class="col-md-2 d-flex gap-1">
-        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-          <i class="fa-solid fa-filter me-1"></i>Filter
-        </button>
-        <a href="{% url 'transaction_list' %}" class="btn btn-ghost-secondary btn-sm" title="Clear">
-          <i class="fa-solid fa-xmark"></i>
-        </a>
+        <button type="submit" class="btn btn-primary btn-sm flex-grow-1"><i class="fa-solid fa-filter me-1"></i>Filter</button>
+        <a href="{% url 'transaction_list' %}" class="btn btn-ghost-secondary btn-sm" title="Clear"><i class="fa-solid fa-xmark"></i></a>
       </div>
     </form>
   </div>
 
   <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between">
-      <div class="card-title"><i class="fa-solid fa-list-ul me-2 text-primary"></i>All Transactions</div>
-      <small class="text-muted">{{ transactions|length }} record{{ transactions|length|pluralize }}</small>
+      <div class="card-title"><i class="fa-solid fa-list-ul me-2 text-primary"></i>All Financial Activities</div>
+      <small class="text-muted">{{ activity_logs|length }} record{{ activity_logs|length|pluralize }}</small>
     </div>
     <div class="table-responsive">
       <table class="table table-vcenter">
         <thead>
           <tr>
-            <th style="white-space:nowrap;">Date</th>
-            <th>Type</th>
+            <th style="white-space:nowrap;">Date &amp; Time</th>
+            <th>Activity</th>
             <th>Description</th>
             <th>Category</th>
+            <th class="text-end">Prev. Balance</th>
             <th class="text-end">Amount</th>
             <th class="text-end">Balance After</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          {% for txn in transactions %}
-          <tr>
-            <td style="white-space:nowrap;font-size:.78rem;color:var(--bt-text-muted);">{{ txn.date|date:"M d, Y" }}</td>
+          {% for log in activity_logs %}
+          <tr {% if log.status == 'deleted' %}style="opacity:.55;"{% elif log.status == 'reversed' %}style="opacity:.65;text-decoration:line-through;"{% endif %}>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--bt-text-muted);">
+              {{ log.date|date:"M d, Y" }}<br>
+              <span style="font-size:.68rem;">{{ log.timestamp|date:"g:i A" }}</span>
+            </td>
             <td style="white-space:nowrap;">
-              {% if txn.transaction_type == 'allowance_added' %}
+              {% if log.activity_type == 'allowance_added' %}
                 <span class="badge bg-primary-lt"><i class="fa-solid fa-piggy-bank me-1"></i>Allowance Added</span>
-              {% elif txn.transaction_type == 'purchase' %}
+              {% elif log.activity_type == 'allowance_deleted' %}
+                <span class="badge bg-danger-lt"><i class="fa-solid fa-trash me-1"></i>Allowance Deleted</span>
+              {% elif log.activity_type == 'expense_planned' %}
+                <span class="badge bg-secondary-lt"><i class="fa-regular fa-clock me-1"></i>Expense Planned</span>
+              {% elif log.activity_type == 'expense_purchased' %}
                 <span class="badge bg-danger-lt"><i class="fa-solid fa-cart-shopping me-1"></i>Purchase</span>
-              {% elif txn.transaction_type == 'savings_transfer' %}
-                <span class="badge bg-warning-lt"><i class="fa-solid fa-bullseye me-1"></i>Savings Transfer</span>
-              {% elif txn.transaction_type == 'refund' %}
+              {% elif log.activity_type == 'expense_cancelled' %}
+                <span class="badge bg-secondary-lt"><i class="fa-solid fa-xmark me-1"></i>Expense Cancelled</span>
+              {% elif log.activity_type == 'expense_deleted' %}
+                <span class="badge bg-secondary-lt"><i class="fa-solid fa-trash me-1"></i>Expense Deleted</span>
+              {% elif log.activity_type == 'refund' %}
                 <span class="badge bg-success-lt"><i class="fa-solid fa-rotate-left me-1"></i>Refund</span>
+              {% elif log.activity_type == 'savings_transfer' %}
+                <span class="badge bg-warning-lt"><i class="fa-solid fa-bullseye me-1"></i>Savings Transfer</span>
+              {% elif log.activity_type == 'savings_returned' %}
+                <span class="badge bg-success-lt"><i class="fa-solid fa-arrow-left me-1"></i>Savings Returned</span>
+              {% elif log.activity_type == 'goal_deleted' %}
+                <span class="badge bg-secondary-lt"><i class="fa-solid fa-trash me-1"></i>Goal Deleted</span>
+              {% elif log.activity_type == 'budget_saved' %}
+                <span class="badge bg-info-lt"><i class="fa-solid fa-floppy-disk me-1"></i>Budget Saved</span>
+              {% elif log.activity_type == 'correction' %}
+                <span class="badge bg-warning-lt"><i class="fa-solid fa-pen me-1"></i>Correction</span>
+              {% else %}
+                <span class="badge bg-secondary-lt">{{ log.get_activity_type_display }}</span>
               {% endif %}
             </td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ txn.description }}</td>
-            <td style="font-size:.78rem;color:var(--bt-text-muted);">{{ txn.category|default:"—" }}</td>
-            <td class="text-end {% if txn.amount >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
-              {% if txn.amount >= 0 %}+{% endif %}₱{{ txn.amount|floatformat:2 }}
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;">
+              {{ log.description }}
+              {% if log.reason %}
+              <br><small class="text-muted" style="font-size:.7rem;"><i class="fa-solid fa-circle-info me-1"></i>{{ log.reason|truncatechars:60 }}</small>
+              {% endif %}
+              {% if log.original_description and log.original_description != log.description %}
+              <br><small class="text-muted" style="font-size:.7rem;">Original: {{ log.original_description }}</small>
+              {% endif %}
             </td>
-            <td class="text-end" style="font-size:.78rem;font-variant-numeric:tabular-nums;">₱{{ txn.balance_after|floatformat:2 }}</td>
+            <td style="font-size:.78rem;color:var(--bt-text-muted);">{{ log.category|default:"—" }}</td>
+            <td class="text-end" style="font-size:.78rem;font-variant-numeric:tabular-nums;">₱{{ log.balance_before|floatformat:2 }}</td>
+            <td class="text-end">
+              {% if log.amount is not None %}
+                <span class="{% if log.amount >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                  {% if log.amount >= 0 %}+{% endif %}₱{{ log.amount|floatformat:2 }}
+                </span>
+              {% else %}
+                <span class="text-muted" style="font-size:.78rem;">non-monetary</span>
+              {% endif %}
+            </td>
+            <td class="text-end" style="font-size:.82rem;font-variant-numeric:tabular-nums;font-weight:600;">₱{{ log.balance_after|floatformat:2 }}</td>
+            <td>
+              {% if log.status == 'completed' %}
+                <span class="badge bg-success-lt">Completed</span>
+              {% elif log.status == 'deleted' %}
+                <span class="badge bg-danger-lt">Deleted</span>
+              {% elif log.status == 'reversed' %}
+                <span class="badge bg-secondary-lt">Reversed</span>
+              {% elif log.status == 'archived' %}
+                <span class="badge bg-secondary-lt">Archived</span>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">
+            <td colspan="8">
               <div class="bt-empty">
                 <div class="bt-empty-icon"><i class="fa-solid fa-inbox"></i></div>
-                <div class="bt-empty-title">No transactions found</div>
+                <div class="bt-empty-title">No activity records found</div>
                 <div class="bt-empty-sub">
-                  {% if type_filter or date_from or date_to %}
+                  {% if type_filter or date_from or date_to or cat_filter %}
                     No records match your filters.
                     <a href="{% url 'transaction_list' %}" class="text-primary">Clear filters</a>
                   {% else %}
-                    Transactions appear here once you add allowance, make purchases, or transfer to goals.
+                    All financial activities will appear here once you start using BudgetTrack.
                   {% endif %}
                 </div>
               </div>

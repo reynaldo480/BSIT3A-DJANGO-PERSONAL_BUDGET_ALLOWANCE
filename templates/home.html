@@ -2,100 +2,48 @@
 {% load core_tags %}
 {% block title %}Dashboard — BudgetTrack{% endblock %}
 {% block content %}
-<div class="container-xl pb-4">
+<div class="pb-4">
 
-  <!-- ── Hero banner ───────────────────────────────────────── -->
+  <!-- ── Hero ─────────────────────────────────────────────── -->
   <div class="bt-hero">
     <div class="bt-hero-inner">
-      <div class="row align-items-center g-4">
-        <div class="col-lg-6">
+      <div class="row align-items-center g-3">
+        <div class="col-lg-7">
           <div class="bt-hero-greeting">Welcome back</div>
-          <div class="bt-hero-name">{{ user.get_full_name|default:user.username }}<span>.</span></div>
+          <div class="bt-hero-name">
+            {{ user.get_full_name|default:user.username }}<span>.</span>
+          </div>
           <div class="bt-hero-msg">
             {% if remaining_balance > 0 %}
-              You have <strong style="color:#fff;">₱{{ remaining_balance|floatformat:2 }}</strong> available — let's make it count.
+              You have <strong style="color:#fff;">₱{{ remaining_balance|floatformat:2 }}</strong> available today.
+            {% elif remaining_balance == 0 %}
+              Your allowance has been fully spent. All records are preserved.
             {% else %}
-              Track your spending and stay on top of your budget.
+              Balance is negative — review your activity history.
             {% endif %}
           </div>
           <div class="mt-3 d-flex gap-2 flex-wrap">
             <a href="{% url 'my_allowance' %}" class="btn btn-accent btn-sm">
-              <i class="fa-solid fa-plus me-1"></i> Add Allowance
+              <i class="fa-solid fa-plus me-1"></i>Add Allowance
             </a>
-            <a href="{% url 'expense_items' %}" class="btn btn-sm" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;">
-              <i class="fa-solid fa-cart-shopping me-1"></i> Add Expense
+            <a href="{% url 'expense_items' %}" class="btn btn-sm"
+               style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;">
+              <i class="fa-solid fa-cart-shopping me-1"></i>Add Expense
             </a>
           </div>
         </div>
-        <div class="col-lg-6">
-          <div class="d-flex gap-3 justify-content-lg-end justify-content-start">
-            <!-- Balance highlight -->
-            <div style="text-align:right;">
-              <div class="bt-hero-balance-label">Available Balance</div>
-              <div class="bt-hero-balance {% if remaining_balance < 0 %}text-danger{% endif %}">
-                ₱{{ remaining_balance|floatformat:2 }}
-              </div>
-              <div class="bt-hero-balance-sub">as of today, {{ today|date:"M d, Y" }}</div>
-            </div>
+        <div class="col-lg-5 text-lg-end">
+          <div class="bt-hero-balance-label">Available Balance</div>
+          <div class="bt-hero-balance {% if remaining_balance < 0 %}text-danger{% endif %}">
+            ₱{{ remaining_balance|floatformat:2 }}
           </div>
+          <div class="bt-hero-balance-sub">{{ today|date:"l, M d, Y" }}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── 4 stat cards ─────────────────────────────────────── -->
-  <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card bt-stat-card sc-primary">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div class="sc-label">Total Allowance</div>
-            <div class="sc-icon"><i class="fa-solid fa-piggy-bank"></i></div>
-          </div>
-          <div class="sc-value mt-2">₱{{ total_allowance|floatformat:2 }}</div>
-          <div class="sc-sub">All allowances received</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card bt-stat-card {% if remaining_balance < 0 %}sc-danger{% else %}sc-success{% endif %}">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div class="sc-label">Available Balance</div>
-            <div class="sc-icon"><i class="fa-solid fa-wallet"></i></div>
-          </div>
-          <div class="sc-value mt-2">₱{{ remaining_balance|floatformat:2 }}</div>
-          <div class="sc-sub">Ready to spend or save</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card bt-stat-card sc-danger">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div class="sc-label">Total Expenses</div>
-            <div class="sc-icon"><i class="fa-solid fa-receipt"></i></div>
-          </div>
-          <div class="sc-value mt-2">₱{{ total_expenses|floatformat:2 }}</div>
-          <div class="sc-sub">Purchased items only</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card bt-stat-card sc-warning">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div class="sc-label">Total Savings</div>
-            <div class="sc-icon"><i class="fa-solid fa-bullseye"></i></div>
-          </div>
-          <div class="sc-value mt-2">₱{{ total_savings|floatformat:2 }}</div>
-          <div class="sc-sub">Transferred to goals</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Period spending + Warnings ─────────────────────────── -->
+  <!-- ── Budget warnings ──────────────────────────────────── -->
   {% if warnings %}
   <div class="mb-3">
     {% for w in warnings %}
@@ -108,85 +56,100 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mb-4 align-items-stretch">
-    <!-- Period selector + spending -->
-    <div class="col-lg-8">
-      <div class="card h-100">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <div class="card-title">
-            <i class="fa-solid fa-chart-bar me-2 text-primary"></i>Spending Summary
-          </div>
-          <div class="bt-period-toggle">
-            <a href="?period=daily"  class="{% if view_period == 'daily'   %}active{% endif %}">Day</a>
-            <a href="?period=weekly" class="{% if view_period == 'weekly'  %}active{% endif %}">Week</a>
-            <a href="?period=monthly"class="{% if view_period == 'monthly' %}active{% endif %}">Month</a>
-          </div>
-        </div>
+  <!-- ── 4 Stat cards (equal heights via row-stretch) ─────── -->
+  <div class="row g-3 mb-3" style="align-items:stretch;">
+    <div class="col-6 col-lg-3 d-flex">
+      <div class="card bt-stat-card sc-primary w-100">
         <div class="card-body">
-          <!-- 3 mini period cards -->
-          <div class="row g-2 mb-4">
-            <div class="col-4">
-              <div class="bt-period-card">
-                <div class="pc-label">Today</div>
-                <div class="pc-value text-info">₱{{ daily_spending|floatformat:2 }}</div>
-                <div class="pc-sub">{{ today|date:"M d" }}</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="bt-period-card">
-                <div class="pc-label">This Week</div>
-                <div class="pc-value text-primary">₱{{ weekly_spending|floatformat:2 }}</div>
-                <div class="pc-sub">{{ weekly_start|date:"M d" }}–{{ weekly_end|date:"M d" }}</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="bt-period-card">
-                <div class="pc-label">This Month</div>
-                <div class="pc-value" style="color:var(--bt-warning);">₱{{ monthly_spending|floatformat:2 }}</div>
-                <div class="pc-sub">{{ monthly_start|date:"M Y" }}</div>
-              </div>
-            </div>
+          <div class="bt-stat-card .sc-top d-flex justify-content-between">
+            <div class="sc-icon"><i class="fa-solid fa-piggy-bank"></i></div>
           </div>
-
-          <!-- Category breakdown for selected period -->
-          {% if period_spending > 0 %}
-          <div class="mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bt-text-muted);">
-            Category Breakdown — {{ view_period|capfirst }}
-            <span class="ms-1 text-muted">(₱{{ period_spending|floatformat:2 }} total)</span>
-          </div>
-          {% for cat_key, cat_label in cat_labels.items %}
-          {% with cat_amt=cat_spending|get_item:cat_key %}
-          {% if cat_amt and cat_amt > 0 %}
-          <div class="bt-budget-row d-flex align-items-center gap-2">
-            <div class="bt-budget-label" style="min-width:140px;">{{ cat_label }}</div>
-            <div class="flex-grow-1">
-              <div class="progress" style="height:5px;">
-                <div class="progress-bar bg-primary" style="width:{{ cat_amt|pct_of:period_spending }}%"></div>
-              </div>
-            </div>
-            <div class="bt-budget-amounts" style="min-width:90px;text-align:right;">
-              ₱{{ cat_amt|floatformat:2 }} <span class="text-muted">({{ cat_amt|pct_of:period_spending }}%)</span>
-            </div>
-          </div>
-          {% endif %}
-          {% endwith %}
-          {% endfor %}
-          {% else %}
-          <div class="bt-empty" style="padding:1.5rem;">
-            <div class="bt-empty-icon"><i class="fa-solid fa-tags"></i></div>
-            <div class="bt-empty-sub">No spending recorded for this {{ view_period }}.</div>
-          </div>
-          {% endif %}
+          <div class="sc-label">Total Allowance</div>
+          <div class="sc-value">₱{{ total_allowance|floatformat:2 }}</div>
+          <div class="sc-sub">Today: ₱{{ today_allowance|floatformat:2 }}</div>
         </div>
       </div>
     </div>
+    <div class="col-6 col-lg-3 d-flex">
+      <div class="card bt-stat-card {% if remaining_balance < 0 %}sc-danger{% else %}sc-success{% endif %} w-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div class="sc-icon"><i class="fa-solid fa-wallet"></i></div>
+          </div>
+          <div class="sc-label">Available Balance</div>
+          <div class="sc-value">₱{{ remaining_balance|floatformat:2 }}</div>
+          <div class="sc-sub">After expenses &amp; savings</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3 d-flex">
+      <div class="card bt-stat-card sc-danger w-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div class="sc-icon"><i class="fa-solid fa-receipt"></i></div>
+          </div>
+          <div class="sc-label">Total Expenses</div>
+          <div class="sc-value">₱{{ total_expenses|floatformat:2 }}</div>
+          <div class="sc-sub">Today: ₱{{ today_spending|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3 d-flex">
+      <div class="card bt-stat-card sc-warning w-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div class="sc-icon"><i class="fa-solid fa-bullseye"></i></div>
+          </div>
+          <div class="sc-label">Total Savings</div>
+          <div class="sc-value">₱{{ total_savings|floatformat:2 }}</div>
+          <div class="sc-sub">Today: ₱{{ today_savings|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- ── Period mini-cards (equal heights) ────────────────── -->
+  <div class="row g-3 mb-3" style="align-items:stretch;">
+    <div class="col-4 d-flex">
+      <div class="bt-period-card w-100">
+        <div class="pc-label">Today's Spending</div>
+        <div class="pc-value text-info">₱{{ daily_spending|floatformat:2 }}</div>
+        <div class="pc-sub">{{ today|date:"M d, Y" }}</div>
+      </div>
+    </div>
+    <div class="col-4 d-flex">
+      <div class="bt-period-card w-100">
+        <div class="pc-label">This Week</div>
+        <div class="pc-value text-primary">₱{{ weekly_spending|floatformat:2 }}</div>
+        <div class="pc-sub">{{ weekly_start|date:"M d" }}–{{ weekly_end|date:"M d" }}</div>
+      </div>
+    </div>
+    <div class="col-4 d-flex">
+      <div class="bt-period-card w-100">
+        <div class="pc-label">This Month</div>
+        <div class="pc-value" style="color:var(--bt-warning);">₱{{ monthly_spending|floatformat:2 }}</div>
+        <div class="pc-sub">{{ monthly_start|date:"M Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Budget progress + Category spending (equal heights) ─ -->
+  <div class="row g-3 mb-3" style="align-items:stretch;">
     <!-- Budget progress -->
-    <div class="col-lg-4">
-      <div class="card h-100">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <div class="card-title"><i class="fa-solid fa-circle-half-stroke me-2 text-primary"></i>Budget Plan</div>
-          <a href="{% url 'my_allowance' %}" class="btn btn-ghost-secondary btn-sm">Manage</a>
+    <div class="col-lg-6 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-chart-pie me-2 text-primary"></i>Budget Progress
+          </div>
+          <div class="card-actions">
+            <div class="bt-period-toggle">
+              <a href="?period=daily"   class="{% if view_period == 'daily'   %}active{% endif %}">Day</a>
+              <a href="?period=weekly"  class="{% if view_period == 'weekly'  %}active{% endif %}">Week</a>
+              <a href="?period=monthly" class="{% if view_period == 'monthly' %}active{% endif %}">Month</a>
+            </div>
+            <a href="{% url 'my_allowance' %}" class="btn btn-ghost-secondary btn-sm">Manage</a>
+          </div>
         </div>
         <div class="card-body">
           {% if active_budget %}
@@ -197,25 +160,72 @@
           {% for row in budget_tracking %}
           {% if row.planned > 0 %}
           <div class="bt-budget-row">
-            <div class="d-flex justify-content-between mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1">
               <span class="bt-budget-label">{{ row.label }}</span>
               <span class="bt-budget-amounts {% if row.over_budget %}text-danger{% endif %}">
-                ₱{{ row.spent|floatformat:2 }}/₱{{ row.planned|floatformat:2 }}
+                ₱{{ row.spent|floatformat:2 }} / ₱{{ row.planned|floatformat:2 }}
               </span>
             </div>
-            <div class="progress" style="height:4px;">
+            <div class="progress" style="height:5px;">
               <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
-                   style="width:{{ row.pct }}%"></div>
+                   style="width:{{ row.pct }}%" role="progressbar"></div>
             </div>
           </div>
           {% endif %}
           {% endfor %}
           {% else %}
-          <div class="bt-empty" style="padding:1.5rem;">
+          <div class="bt-empty">
             <div class="bt-empty-icon"><i class="fa-solid fa-chart-pie"></i></div>
             <div class="bt-empty-title">No active budget plan</div>
             <div class="bt-empty-sub">Go to My Allowance to create one.</div>
-            <a href="{% url 'my_allowance' %}" class="btn btn-primary btn-sm mt-3">Create Plan</a>
+            <a href="{% url 'my_allowance' %}" class="btn btn-primary btn-sm mt-2">Create Plan</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Category spending -->
+    <div class="col-lg-6 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-tags me-2" style="color:var(--bt-warning);"></i>
+            Spending by Category
+            <span class="badge bg-warning-lt ms-1 text-capitalize">{{ view_period }}</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if period_spending > 0 %}
+          <table class="table table-sm table-vcenter mb-0">
+            <tbody>
+              {% for cat_key, cat_label in cat_labels.items %}
+              {% with cat_amt=cat_spending|get_item:cat_key %}
+              {% if cat_amt and cat_amt > 0 %}
+              <tr>
+                <td class="ps-0" style="font-size:.82rem;">{{ cat_label }}</td>
+                <td class="text-end" style="font-size:.82rem;font-weight:600;font-variant-numeric:tabular-nums;">
+                  ₱{{ cat_amt|floatformat:2 }}
+                </td>
+                <td style="width:100px;">
+                  <div class="progress" style="height:5px;">
+                    <div class="progress-bar bg-warning"
+                         style="width:{{ cat_amt|pct_of:period_spending }}%"></div>
+                  </div>
+                </td>
+                <td class="text-end pe-0 text-muted" style="font-size:.72rem;width:36px;">
+                  {{ cat_amt|pct_of:period_spending }}%
+                </td>
+              </tr>
+              {% endif %}
+              {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="bt-empty">
+            <div class="bt-empty-icon"><i class="fa-solid fa-tags"></i></div>
+            <div class="bt-empty-sub">No spending recorded for this {{ view_period }}.</div>
           </div>
           {% endif %}
         </div>
@@ -223,53 +233,75 @@
     </div>
   </div>
 
-  <!-- ── Recent Transactions + Goals ─────────────────────────── -->
+  <!-- ── Recent Activity + Goals ──────────────────────────── -->
   <div class="row g-3">
-    <div class="col-lg-8">
-      <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <div class="card-title"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Recent Transactions</div>
-          <a href="{% url 'transaction_list' %}" class="btn btn-ghost-secondary btn-sm">View All</a>
+    <div class="col-lg-8 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Recent Activity
+          </div>
+          <div class="card-actions">
+            <a href="{% url 'transaction_list' %}" class="btn btn-ghost-secondary btn-sm">View All</a>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-vcenter">
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Type</th>
+                <th>Activity</th>
                 <th>Description</th>
                 <th class="text-end">Amount</th>
                 <th class="text-end">Balance After</th>
               </tr>
             </thead>
             <tbody>
-              {% for txn in recent_transactions %}
-              <tr>
-                <td class="text-muted" style="white-space:nowrap;font-size:.78rem;">{{ txn.date|date:"M d, Y" }}</td>
-                <td>
-                  {% if txn.transaction_type == 'allowance_added' %}
+              {% for log in recent_activity %}
+              <tr {% if log.status == 'deleted' %}style="opacity:.6;"{% endif %}>
+                <td class="text-muted" style="white-space:nowrap;font-size:.75rem;">
+                  {{ log.date|date:"M d" }}<br>
+                  <span style="font-size:.68rem;">{{ log.timestamp|date:"g:i A" }}</span>
+                </td>
+                <td style="white-space:nowrap;">
+                  {% if log.activity_type == 'allowance_added' %}
                     <span class="badge bg-primary-lt"><i class="fa-solid fa-piggy-bank me-1"></i>Allowance</span>
-                  {% elif txn.transaction_type == 'purchase' %}
+                  {% elif log.activity_type == 'allowance_deleted' %}
+                    <span class="badge bg-danger-lt"><i class="fa-solid fa-trash me-1"></i>Deleted</span>
+                  {% elif log.activity_type == 'expense_purchased' %}
                     <span class="badge bg-danger-lt"><i class="fa-solid fa-cart-shopping me-1"></i>Purchase</span>
-                  {% elif txn.transaction_type == 'savings_transfer' %}
+                  {% elif log.activity_type == 'expense_planned' %}
+                    <span class="badge bg-secondary-lt"><i class="fa-regular fa-clock me-1"></i>Planned</span>
+                  {% elif log.activity_type == 'savings_transfer' %}
                     <span class="badge bg-warning-lt"><i class="fa-solid fa-bullseye me-1"></i>Savings</span>
-                  {% elif txn.transaction_type == 'refund' %}
+                  {% elif log.activity_type == 'refund' %}
                     <span class="badge bg-success-lt"><i class="fa-solid fa-rotate-left me-1"></i>Refund</span>
+                  {% elif log.activity_type == 'budget_saved' %}
+                    <span class="badge bg-info-lt"><i class="fa-solid fa-floppy-disk me-1"></i>Budget</span>
+                  {% else %}
+                    <span class="badge bg-secondary-lt">{{ log.get_activity_type_display }}</span>
                   {% endif %}
                 </td>
-                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ txn.description }}</td>
-                <td class="text-end {% if txn.amount >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
-                  {% if txn.amount >= 0 %}+{% endif %}₱{{ txn.amount|floatformat:2 }}
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;">
+                  {{ log.description }}
                 </td>
-                <td class="text-end" style="font-size:.78rem;">₱{{ txn.balance_after|floatformat:2 }}</td>
+                <td class="text-end">
+                  {% if log.amount is not None %}
+                    <span class="{% if log.amount >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                      {% if log.amount >= 0 %}+{% endif %}₱{{ log.amount|floatformat:2 }}
+                    </span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-end" style="font-size:.78rem;">₱{{ log.balance_after|floatformat:2 }}</td>
               </tr>
               {% empty %}
               <tr>
                 <td colspan="5">
-                  <div class="bt-empty" style="padding:2rem;">
+                  <div class="bt-empty">
                     <div class="bt-empty-icon"><i class="fa-solid fa-inbox"></i></div>
-                    <div class="bt-empty-title">No transactions yet</div>
-                    <div class="bt-empty-sub">Add your first allowance to get started.</div>
+                    <div class="bt-empty-sub">No activity yet. Add your first allowance to get started.</div>
                   </div>
                 </td>
               </tr>
@@ -280,31 +312,36 @@
       </div>
     </div>
 
-    <!-- Goals -->
-    <div class="col-lg-4">
-      <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <div class="card-title"><i class="fa-solid fa-bullseye me-2" style="color:var(--bt-warning);"></i>My Goals</div>
-          <a href="{% url 'goals' %}" class="btn btn-ghost-secondary btn-sm">Manage</a>
+    <!-- Goals summary -->
+    <div class="col-lg-4 d-flex">
+      <div class="card w-100">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-bullseye me-2" style="color:var(--bt-warning);"></i>My Goals
+          </div>
+          <div class="card-actions">
+            <a href="{% url 'goals' %}" class="btn btn-ghost-secondary btn-sm">Manage</a>
+          </div>
         </div>
-        <div class="card-body" style="padding:0.85rem 1.1rem;">
+        <div class="card-body" style="padding:.9rem 1.1rem;">
           {% for goal in savings_goals %}
-          <div class="mb-3 pb-3 border-bottom border-last-none">
-            <div class="d-flex align-items-start gap-2 mb-2">
-              <div class="goal-icon {% if goal.status == 'completed' %}completed{% endif %}" style="width:2rem;height:2rem;font-size:.8rem;border-radius:.55rem;flex-shrink:0;">
+          <div class="mb-3 pb-3" style="border-bottom:1px solid var(--bt-border);">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="goal-icon {% if goal.status == 'completed' %}completed{% endif %}"
+                   style="width:2rem;height:2rem;font-size:.8rem;border-radius:.55rem;flex-shrink:0;">
                 <i class="fa-solid {% if goal.status == 'completed' %}fa-check{% else %}fa-bullseye{% endif %}"></i>
               </div>
               <div class="flex-grow-1 min-w-0">
-                <div style="font-weight:600;font-size:.845rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ goal.name }}</div>
+                <div style="font-weight:600;font-size:.845rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  {{ goal.name }}
+                </div>
                 <div style="font-size:.72rem;color:var(--bt-text-muted);">
                   ₱{{ goal.current_amount|floatformat:2 }} / ₱{{ goal.target_amount|floatformat:2 }}
                 </div>
               </div>
-              {% if goal.status == 'completed' %}
-                <span class="badge bg-success-lt">Done</span>
-              {% else %}
-                <span class="badge bg-warning-lt">{{ goal.progress_percentage|floatformat:0 }}%</span>
-              {% endif %}
+              <span class="badge {% if goal.status == 'completed' %}bg-success-lt{% else %}bg-warning-lt{% endif %}" style="flex-shrink:0;">
+                {{ goal.progress_percentage|floatformat:0 }}%
+              </span>
             </div>
             <div class="progress" style="height:4px;">
               <div class="progress-bar {% if goal.status == 'completed' %}bg-success{% else %}bg-warning{% endif %}"
@@ -313,8 +350,10 @@
           </div>
           {% empty %}
           <div class="bt-empty" style="padding:1.5rem;">
-            <div class="bt-empty-icon"><i class="fa-solid fa-bullseye"></i></div>
-            <div class="bt-empty-sub">No goals yet. Create one to start saving.</div>
+            <div class="bt-empty-icon" style="width:2.5rem;height:2.5rem;font-size:1rem;">
+              <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div class="bt-empty-sub">No goals yet.</div>
             <a href="{% url 'goals' %}" class="btn btn-warning btn-sm mt-2">Create Goal</a>
           </div>
           {% endfor %}

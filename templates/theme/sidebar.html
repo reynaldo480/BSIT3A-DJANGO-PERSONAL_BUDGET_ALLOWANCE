@@ -1,74 +1,71 @@
-<aside class="navbar navbar-vertical navbar-expand-lg bt-sidebar" id="btSidebar" role="navigation" aria-label="Main navigation">
-  <div class="container-fluid flex-column h-100 p-0">
+<aside class="bt-sidebar" id="btSidebar" role="navigation" aria-label="Main navigation">
 
-    <!-- Brand -->
-    <a href="{% url 'dashboard' %}" class="bt-brand">
-      <div class="bt-brand-icon">
-        <i class="fa-solid fa-wallet"></i>
-      </div>
-      <div>
-        <div class="bt-brand-name">Budget<span>Track</span></div>
-        <div class="bt-brand-sub">Allowance System</div>
-      </div>
-    </a>
-
-    <!-- Nav items -->
-    <div class="flex-grow-1 overflow-auto py-2">
-      <nav class="bt-nav navbar-nav d-flex flex-column">
-        <span class="bt-nav-section">Main Menu</span>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-           href="{% url 'dashboard' %}">
-          <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-          Dashboard
-        </a>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'my_allowance' %}active{% endif %}"
-           href="{% url 'my_allowance' %}">
-          <span class="nav-icon"><i class="fa-solid fa-piggy-bank"></i></span>
-          My Allowance
-        </a>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'expense_items' %}active{% endif %}"
-           href="{% url 'expense_items' %}">
-          <span class="nav-icon"><i class="fa-solid fa-cart-shopping"></i></span>
-          Expenses
-        </a>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'goals' %}active{% endif %}"
-           href="{% url 'goals' %}">
-          <span class="nav-icon"><i class="fa-solid fa-bullseye"></i></span>
-          Goals
-        </a>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'transaction_list' %}active{% endif %}"
-           href="{% url 'transaction_list' %}">
-          <span class="nav-icon"><i class="fa-solid fa-list-ul"></i></span>
-          List
-        </a>
-
-        <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}"
-           href="{% url 'profile' %}">
-          <span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span>
-          Profile
-        </a>
-
-      </nav>
+  <!-- Brand -->
+  <a href="{% url 'dashboard' %}" class="bt-sidebar-brand">
+    <div class="bt-sidebar-brand-icon">
+      <i class="fa-solid fa-wallet"></i>
     </div>
-
-    <!-- User footer -->
-    <div class="bt-user-footer">
-      <a href="{% url 'profile' %}" class="bt-user-avatar text-decoration-none" title="Profile">
-        {{ user.username|first|upper }}
-      </a>
-      <div class="min-w-0 flex-grow-1">
-        <div class="bt-user-name">{{ user.get_full_name|default:user.username }}</div>
-        <div class="bt-user-role">{% if user.is_superuser %}Administrator{% else %}Student{% endif %}</div>
-      </div>
-      <a href="{% url 'logout' %}" class="bt-user-logout" title="Sign out">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </a>
+    <div class="bt-sidebar-brand-text">
+      <div class="bt-sidebar-brand-name">Budget<span>Track</span></div>
+      <div class="bt-sidebar-brand-sub">Allowance System</div>
     </div>
+  </a>
 
+  <!-- Nav scroll area -->
+  <div class="bt-sidebar-nav-wrap">
+    <nav class="bt-nav" aria-label="App navigation">
+      <div class="bt-nav-section-label">Main Menu</div>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'dashboard' %}bt-nav-link--active{% endif %}"
+         href="{% url 'dashboard' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-chart-pie"></i></span>
+        <span class="bt-nav-link-label">Dashboard</span>
+      </a>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'my_allowance' %}bt-nav-link--active{% endif %}"
+         href="{% url 'my_allowance' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-piggy-bank"></i></span>
+        <span class="bt-nav-link-label">My Allowance</span>
+      </a>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'expense_items' %}bt-nav-link--active{% endif %}"
+         href="{% url 'expense_items' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-cart-shopping"></i></span>
+        <span class="bt-nav-link-label">Expenses</span>
+      </a>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'goals' %}bt-nav-link--active{% endif %}"
+         href="{% url 'goals' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-bullseye"></i></span>
+        <span class="bt-nav-link-label">Goals</span>
+      </a>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'transaction_list' %}bt-nav-link--active{% endif %}"
+         href="{% url 'transaction_list' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-list-ul"></i></span>
+        <span class="bt-nav-link-label">List</span>
+      </a>
+
+      <a class="bt-nav-link {% if request.resolver_match.url_name == 'profile' %}bt-nav-link--active{% endif %}"
+         href="{% url 'profile' %}">
+        <span class="bt-nav-link-icon"><i class="fa-solid fa-user-circle"></i></span>
+        <span class="bt-nav-link-label">Profile</span>
+      </a>
+    </nav>
   </div>
+
+  <!-- User card (pinned to bottom) -->
+  <div class="bt-sidebar-user">
+    <a href="{% url 'profile' %}" class="bt-sidebar-user-avatar" title="View profile">
+      {{ user.username|first|upper }}
+    </a>
+    <div class="bt-sidebar-user-info">
+      <div class="bt-sidebar-user-name">{{ user.get_full_name|default:user.username }}</div>
+      <div class="bt-sidebar-user-role">{% if user.is_superuser %}Administrator{% else %}Student{% endif %}</div>
+    </div>
+    <a href="{% url 'logout' %}" class="bt-sidebar-user-logout" title="Sign out">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </a>
+  </div>
+
 </aside>

@@ -4,7 +4,6 @@
 {% block content %}
 <div class="container-xl pb-4">
 
-  <!-- Page header -->
   <div class="page-header">
     <div class="row align-items-center">
       <div class="col">
@@ -12,39 +11,46 @@
         <h2 class="page-title">My Allowance</h2>
       </div>
       <div class="col-auto">
-        <span class="badge {% if balance > 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}" style="font-size:.9rem;padding:.4rem .9rem;">
+        <span class="badge {% if balance >= 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}" style="font-size:.9rem;padding:.4rem .9rem;">
           Balance: ₱{{ balance|floatformat:2 }}
         </span>
       </div>
     </div>
   </div>
 
-  <!-- Summary mini-cards -->
+  <!-- Summary cards -->
   <div class="row g-3 mb-4">
-    <div class="col-sm-4">
+    <div class="col-sm-3">
+      <div class="bt-period-card">
+        <div class="pc-label">Today's Allowance</div>
+        <div class="pc-value text-info">₱{{ today_allowance|floatformat:2 }}</div>
+        <div class="pc-sub">{{ today|date:"M d, Y" }}</div>
+      </div>
+    </div>
+    <div class="col-sm-3">
       <div class="bt-period-card">
         <div class="pc-label">This Week</div>
         <div class="pc-value text-primary">₱{{ weekly_allowance|floatformat:2 }}</div>
-        <div class="pc-sub">{{ weekly_start|date:"M d" }} – {{ weekly_end|date:"M d, Y" }}</div>
+        <div class="pc-sub">{{ weekly_start|date:"M d" }} – {{ weekly_end|date:"M d" }}</div>
       </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-3">
       <div class="bt-period-card">
         <div class="pc-label">Available Balance</div>
         <div class="pc-value {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">₱{{ balance|floatformat:2 }}</div>
         <div class="pc-sub">After expenses &amp; savings</div>
       </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-3">
       <div class="bt-period-card">
-        <div class="pc-label">Allowance Records</div>
-        <div class="pc-value text-info">{{ allowances|length }}</div>
-        <div class="pc-sub">All time</div>
+        <div class="pc-label">Total Records</div>
+        <div class="pc-value text-muted">{{ allowances|length }}</div>
+        <div class="pc-sub">Active allowances</div>
       </div>
     </div>
   </div>
 
-  <!-- ── Add Allowance + Records ─────────────────────────────── -->
+  <!-- Add Allowance + Records -->
   <div class="row g-4 mb-4">
     <div class="col-lg-4">
       <div class="card h-100">
@@ -52,7 +58,7 @@
           <div class="card-title"><i class="fa-solid fa-plus-circle me-2 text-primary"></i>Add Allowance</div>
         </div>
         <div class="card-body">
-          <form method="post" class="row g-3">
+          <form method="post" id="addAllowanceForm" class="row g-3">
             {% csrf_token %}
             <input type="hidden" name="action" value="add_allowance">
             <div class="col-12">
@@ -60,20 +66,21 @@
               <div class="input-group">
                 <span class="input-group-text">₱</span>
                 <input type="number" step="0.01" min="0.01" name="amount" id="newAllowanceAmount"
-                       class="form-control" placeholder="e.g. 1000" required>
+                       class="form-control" placeholder="e.g. 100" required>
               </div>
             </div>
             <div class="col-12">
-              <label class="form-label">Label</label>
-              <input type="text" name="name" class="form-control" value="Weekly Allowance">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Type</label>
-              <select name="allowance_type" class="form-select">
-                <option value="weekly">Weekly</option>
+              <label class="form-label">Budget Period</label>
+              <select name="allowance_type" id="newAllowanceType" class="form-select">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
                 <option value="biweekly">Bi-weekly</option>
                 <option value="monthly">Monthly</option>
               </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Label</label>
+              <input type="text" name="name" id="newAllowanceName" class="form-control" value="Weekly Allowance">
             </div>
             <div class="col-12">
               <label class="form-label">Date Received</label>
@@ -81,7 +88,7 @@
             </div>
             <div class="col-12">
               <label class="form-label">Description <span class="text-muted">(optional)</span></label>
-              <input type="text" name="description" class="form-control" placeholder="e.g. From mom">
+              <input type="text" name="description" class="form-control" placeholder="e.g. From mom, Daily school allowance">
             </div>
             <div class="col-12">
               <button type="submit" class="btn btn-primary w-100">
@@ -104,18 +111,20 @@
               <tr>
                 <th>Date</th>
                 <th>Label</th>
-                <th>Type</th>
+                <th>Period</th>
                 <th class="text-end">Amount</th>
+                <th>Status</th>
                 <th class="w-1">Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for a in allowances %}
               <tr>
-                <td style="white-space:nowrap;font-size:.78rem;" class="text-muted">{{ a.date_received|date:"M d, Y" }}</td>
+                <td style="font-size:.78rem;color:var(--bt-text-muted);white-space:nowrap;">{{ a.date_received|date:"M d, Y" }}</td>
                 <td style="font-weight:500;">{{ a.name }}</td>
                 <td><span class="badge bg-primary-lt">{{ a.get_allowance_type_display }}</span></td>
                 <td class="text-end amount-positive">+₱{{ a.amount|floatformat:2 }}</td>
+                <td><span class="status-chip status-purchased"><i class="fa-solid fa-check"></i>Active</span></td>
                 <td>
                   <div class="d-flex gap-1 justify-content-end">
                     <button class="btn btn-ghost-secondary btn-icon btn-sm"
@@ -127,23 +136,38 @@
                             data-description="{{ a.description }}" title="Edit">
                       <i class="fa-solid fa-pen" style="color:var(--bt-primary);font-size:.8rem;"></i>
                     </button>
-                    <button class="btn btn-ghost-secondary btn-icon btn-sm"
-                            data-bs-toggle="modal" data-bs-target="#deleteModal"
-                            data-delete-url="{% url 'allowance_delete_ajax' a.id %}"
-                            data-name="allowance '{{ a.name }}'" title="Delete">
+                    <a href="{% url 'allowance_delete_confirm' a.id %}"
+                       class="btn btn-ghost-secondary btn-icon btn-sm" title="Delete (recorded)"
+                       onclick="return confirm('This will open a confirmation page where the deletion is permanently recorded in your history.');">
                       <i class="fa-solid fa-trash" style="color:var(--bt-danger);font-size:.8rem;"></i>
-                    </button>
+                    </a>
                   </div>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="5">
+                <td colspan="6">
                   <div class="bt-empty" style="padding:2rem;">
                     <div class="bt-empty-icon"><i class="fa-solid fa-piggy-bank"></i></div>
                     <div class="bt-empty-title">No allowance records yet</div>
-                    <div class="bt-empty-sub">Use the form to add your first allowance.</div>
+                    <div class="bt-empty-sub">Use the form on the left to add your first allowance.</div>
                   </div>
+                </td>
+              </tr>
+              {% endfor %}
+
+              <!-- Deleted (archived) records -->
+              {% for a in allowances_deleted %}
+              <tr style="opacity:.5;">
+                <td style="font-size:.78rem;white-space:nowrap;">{{ a.date_received|date:"M d, Y" }}</td>
+                <td><s>{{ a.name }}</s></td>
+                <td><span class="badge bg-secondary-lt">{{ a.get_allowance_type_display }}</span></td>
+                <td class="text-end text-muted">₱{{ a.amount|floatformat:2 }}</td>
+                <td><span class="badge bg-danger-lt"><i class="fa-solid fa-trash me-1"></i>Deleted</span></td>
+                <td>
+                  <span class="text-muted" style="font-size:.72rem;" title="{{ a.deleted_at|date:'M d, Y g:i A' }}">
+                    {{ a.deleted_at|date:"M d" }}
+                  </span>
                 </td>
               </tr>
               {% endfor %}
@@ -154,32 +178,33 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       SMART BUDGET PLANNER
-       ══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════ SMART BUDGET PLANNER ═══════════════ -->
   <div class="card mb-4">
     <div class="card-header">
       <div class="card-title">
-        <i class="fa-solid fa-lightbulb me-2" style="color:var(--bt-warning);"></i>
-        Smart Budget Planner
-        <small class="ms-2 fw-normal text-muted" style="font-size:.75rem;">Budget Advisor built-in — saving a plan does not deduct money</small>
+        <i class="fa-solid fa-lightbulb me-2" style="color:var(--bt-warning);"></i>Smart Budget Planner
+        <small class="ms-2 fw-normal text-muted" style="font-size:.75rem;">Enter amount → auto-suggestions appear below</small>
       </div>
     </div>
     <div class="card-body">
+      <div class="alert alert-info py-2 mb-3" style="font-size:.82rem;">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        Saving a budget plan does <strong>not</strong> deduct money. It is a spending guide only.
+      </div>
+
       <div class="row g-3 align-items-end mb-3">
         <div class="col-md-4">
           <label class="form-label">Allowance Amount (₱)</label>
           <div class="input-group">
             <span class="input-group-text">₱</span>
-            <input type="number" step="1" min="1" id="advisorAmount" class="form-control"
-                   placeholder="e.g. 1000" value="{{ balance|floatformat:0 }}">
+            <input type="number" step="1" min="1" id="advisorAmount" class="form-control" placeholder="e.g. 100">
           </div>
         </div>
         <div class="col-md-3">
           <label class="form-label">Budget Period</label>
           <select id="advisorPeriod" class="form-select">
-            <option value="weekly" selected>Weekly</option>
             <option value="daily">Daily</option>
+            <option value="weekly" selected>Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
         </div>
@@ -209,7 +234,6 @@
           <input type="hidden" name="budget_id" id="budgetPlanId">
           <input type="hidden" name="budget_allowance_id" id="budgetAllowanceIdHidden">
           <input type="hidden" name="budget_period" id="budgetPeriodHidden" value="weekly">
-
           <div class="row g-3 mb-3">
             <div class="col-md-4">
               <label class="form-label">Budget Total (₱)</label>
@@ -224,11 +248,9 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Period</label>
-              <input type="text" id="budgetPeriodDisplay" class="form-control" readonly>
+              <input type="text" id="budgetPeriodDisplay" class="form-control" readonly style="background:var(--bt-surface-2);">
             </div>
           </div>
-
-          <!-- Allocation table -->
           <div class="card mb-3" style="border:1.5px solid var(--bt-border);">
             <div class="table-responsive">
               <table class="table table-vcenter mb-0">
@@ -236,8 +258,8 @@
                   <tr>
                     <th>Category</th>
                     <th style="width:80px;">Suggested</th>
-                    <th style="width:160px;">Amount (₱)</th>
-                    <th class="text-end" style="width:70px;">% of Total</th>
+                    <th style="width:160px;">Your Amount (₱)</th>
+                    <th class="text-end" style="width:70px;">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,13 +278,13 @@
                   </tr>
                   {% endfor %}
                 </tbody>
-                <tfoot>
-                  <tr style="background:var(--bt-surface-2);">
+                <tfoot style="background:var(--bt-surface-2);">
+                  <tr>
                     <td colspan="2" style="font-weight:700;">Total Allocated</td>
                     <td><span id="totalAllocated" class="fw-700 text-primary">₱0</span></td>
                     <td class="text-end text-muted" id="totalPct" style="font-size:.75rem;">0%</td>
                   </tr>
-                  <tr style="background:var(--bt-surface-2);">
+                  <tr>
                     <td colspan="2" class="text-muted" style="font-size:.78rem;">Unallocated</td>
                     <td><span id="unallocated" class="text-success fw-600">₱0</span></td>
                     <td></td>
@@ -271,11 +293,9 @@
               </table>
             </div>
           </div>
-
           <div id="allocationWarning" class="alert alert-danger d-none mb-3 py-2" style="font-size:.82rem;">
             <i class="fa-solid fa-triangle-exclamation me-2"></i>Total allocation exceeds the budget amount.
           </div>
-
           <div class="row g-3 align-items-end">
             <div class="col-md-8">
               <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
@@ -287,38 +307,31 @@
               </button>
             </div>
           </div>
-          <div class="mt-2 text-muted" style="font-size:.75rem;">
-            <i class="fa-solid fa-circle-info me-1"></i>
-            Saving a plan does <strong>not</strong> deduct money from your balance.
-          </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ── Active Budget Tracking ──────────────────────────────── -->
+  <!-- Active Budget Tracking -->
   {% if active_plan %}
   <div class="card mb-4">
     <div class="card-header d-flex align-items-center justify-content-between">
       <div class="card-title">
         <i class="fa-solid fa-chart-bar me-2 text-primary"></i>
         Active Budget — {{ active_plan.get_period_display }}
-        <span class="text-muted ms-2" style="font-size:.78rem;font-weight:400;">{{ active_plan.period_start|date:"M d" }} – {{ active_plan.period_end|date:"M d, Y" }}</span>
+        <span class="text-muted ms-2" style="font-size:.78rem;font-weight:400;">
+          {{ active_plan.period_start|date:"M d" }} – {{ active_plan.period_end|date:"M d, Y" }}
+        </span>
       </div>
       <button type="button" class="btn btn-ghost-secondary btn-sm edit-plan-btn"
-              data-plan-id="{{ active_plan.id }}"
-              data-total="{{ active_plan.total_amount }}"
-              data-period="{{ active_plan.period }}"
-              data-start="{{ active_plan.period_start|date:'Y-m-d' }}"
+              data-plan-id="{{ active_plan.id }}" data-total="{{ active_plan.total_amount }}"
+              data-period="{{ active_plan.period }}" data-start="{{ active_plan.period_start|date:'Y-m-d' }}"
               data-allowance="{{ active_plan.allowance_id|default:'' }}"
-              data-food="{{ active_plan.food }}"
-              data-transportation="{{ active_plan.transportation }}"
-              data-school_expenses="{{ active_plan.school_expenses }}"
-              data-personal_needs="{{ active_plan.personal_needs }}"
-              data-savings="{{ active_plan.savings }}"
-              data-emergency_fund="{{ active_plan.emergency_fund }}"
+              data-food="{{ active_plan.food }}" data-transportation="{{ active_plan.transportation }}"
+              data-school_expenses="{{ active_plan.school_expenses }}" data-personal_needs="{{ active_plan.personal_needs }}"
+              data-savings="{{ active_plan.savings }}" data-emergency_fund="{{ active_plan.emergency_fund }}"
               data-other="{{ active_plan.other }}">
-        <i class="fa-solid fa-pen me-1"></i>Edit Plan
+        <i class="fa-solid fa-pen me-1"></i>Edit
       </button>
     </div>
     <div class="card-body">
@@ -326,10 +339,8 @@
       <div class="alert alert-info py-2 mb-3" style="font-size:.82rem;">
         <i class="fa-solid fa-calendar-day me-2"></i>
         Daily equivalent: <strong>₱{{ daily_equiv|floatformat:2 }}/day</strong>
-        based on ₱{{ active_plan.total_amount|floatformat:2 }} / {{ active_plan.period }}
       </div>
       {% endif %}
-
       <div class="row g-3">
         {% for row in budget_tracking %}
         {% if row.planned > 0 %}
@@ -337,49 +348,42 @@
           <div class="p-3 rounded-3" style="border:1.5px solid {% if row.over_budget %}var(--bt-danger-light){% elif row.pct >= 80 %}var(--bt-warning-light){% else %}var(--bt-border){% endif %};background:var(--bt-surface-2);">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span style="font-weight:600;font-size:.845rem;">{{ row.label }}</span>
-              {% if row.over_budget %}
-                <span class="badge bg-danger-lt">Over budget</span>
-              {% elif row.pct >= 80 %}
-                <span class="badge bg-warning-lt">Almost full</span>
-              {% endif %}
+              {% if row.over_budget %}<span class="badge bg-danger-lt">Over</span>
+              {% elif row.pct >= 80 %}<span class="badge bg-warning-lt">Almost</span>{% endif %}
             </div>
             <div class="progress mb-2" style="height:5px;">
-              <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
-                   style="width:{{ row.pct }}%"></div>
+              <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}" style="width:{{ row.pct }}%"></div>
             </div>
             <div class="d-flex justify-content-between text-muted" style="font-size:.72rem;">
               <span>Spent: <strong class="{% if row.over_budget %}text-danger{% endif %}">₱{{ row.spent|floatformat:2 }}</strong></span>
-              <span>Plan: ₱{{ row.planned|floatformat:2 }}</span>
+              <span>Planned: ₱{{ row.planned|floatformat:2 }}</span>
             </div>
-            <div class="text-muted mt-1" style="font-size:.7rem;">
-              {% if row.over_budget %}
-                <span class="text-danger">Over by ₱{{ row.spent|subtract:row.planned|floatformat:2 }}</span>
-              {% else %}₱{{ row.remaining|floatformat:2 }} remaining{% endif %}
+            <div style="font-size:.7rem;color:var(--bt-text-muted);margin-top:.2rem;">
+              {% if row.over_budget %}<span class="text-danger">Over by ₱{{ row.spent|subtract:row.planned|floatformat:2 }}</span>
+              {% else %}₱{{ row.remaining|floatformat:2 }} left{% endif %}
             </div>
           </div>
         </div>
         {% endif %}
         {% endfor %}
       </div>
-
-      <!-- Summary row -->
       <div class="row g-2 mt-3">
         <div class="col-sm-4">
           <div class="text-center p-2 rounded-3" style="background:var(--bt-primary-light);">
-            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Planned</div>
-            <div style="font-size:1.15rem;font-weight:800;color:var(--bt-primary);">₱{{ active_plan.total_allocated|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">Planned</div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--bt-primary);">₱{{ active_plan.total_allocated|floatformat:2 }}</div>
           </div>
         </div>
         <div class="col-sm-4">
           <div class="text-center p-2 rounded-3" style="background:var(--bt-danger-light);">
-            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Spent</div>
-            <div style="font-size:1.15rem;font-weight:800;color:var(--bt-danger);">₱{{ active_plan_total_spent|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">Spent</div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--bt-danger);">₱{{ active_plan_total_spent|floatformat:2 }}</div>
           </div>
         </div>
         <div class="col-sm-4">
           <div class="text-center p-2 rounded-3" style="background:var(--bt-success-light);">
-            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Unallocated</div>
-            <div style="font-size:1.15rem;font-weight:800;color:var(--bt-success);">₱{{ active_plan.unallocated|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">Unallocated</div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--bt-success);">₱{{ active_plan.unallocated|floatformat:2 }}</div>
           </div>
         </div>
       </div>
@@ -387,30 +391,26 @@
   </div>
   {% endif %}
 
-  <!-- ── Saved Budget Plans ──────────────────────────────────── -->
+  <!-- Saved budget plans accordion -->
   {% if plans_with_tracking %}
   <div class="card mb-4">
-    <div class="card-header">
-      <div class="card-title"><i class="fa-solid fa-folder me-2"></i>Saved Budget Plans</div>
-    </div>
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-folder me-2"></i>Saved Budget Plans</div></div>
     <div class="accordion accordion-flush" id="plansAccordion">
-      {% for entry in plans_with_tracking %}
-      {% with bp=entry.plan %}
+      {% for entry in plans_with_tracking %}{% with bp=entry.plan %}
       <div class="accordion-item">
         <h2 class="accordion-header">
           <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
                   data-bs-toggle="collapse" data-bs-target="#plan-{{ bp.id }}">
             <span class="badge bg-primary-lt me-2">{{ bp.get_period_display }}</span>
             <span style="font-weight:600;font-size:.845rem;">{{ bp.period_start|date:"M d" }} – {{ bp.period_end|date:"M d, Y" }}</span>
-            <span class="ms-auto me-3 text-muted" style="font-size:.75rem;">Budget ₱{{ bp.total_amount|floatformat:2 }}</span>
+            <span class="ms-auto me-3 text-muted" style="font-size:.75rem;">₱{{ bp.total_amount|floatformat:2 }}</span>
             <span class="text-danger" style="font-size:.75rem;">Spent ₱{{ entry.total_spent|floatformat:2 }}</span>
           </button>
         </h2>
         <div id="plan-{{ bp.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
           <div class="accordion-body">
             <div class="row g-2 mb-3">
-              {% for row in entry.tracking %}
-              {% if row.planned > 0 %}
+              {% for row in entry.tracking %}{% if row.planned > 0 %}
               <div class="col-sm-6 col-md-4">
                 <div class="d-flex justify-content-between mb-1">
                   <span style="font-size:.82rem;">{{ row.label }}</span>
@@ -419,26 +419,19 @@
                   </span>
                 </div>
                 <div class="progress" style="height:3px;">
-                  <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
-                       style="width:{{ row.pct }}%"></div>
+                  <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}" style="width:{{ row.pct }}%"></div>
                 </div>
               </div>
-              {% endif %}
-              {% endfor %}
+              {% endif %}{% endfor %}
             </div>
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-ghost-secondary btn-sm edit-plan-btn"
-                      data-plan-id="{{ bp.id }}"
-                      data-total="{{ bp.total_amount }}"
-                      data-period="{{ bp.period }}"
-                      data-start="{{ bp.period_start|date:'Y-m-d' }}"
+                      data-plan-id="{{ bp.id }}" data-total="{{ bp.total_amount }}"
+                      data-period="{{ bp.period }}" data-start="{{ bp.period_start|date:'Y-m-d' }}"
                       data-allowance="{{ bp.allowance_id|default:'' }}"
-                      data-food="{{ bp.food }}"
-                      data-transportation="{{ bp.transportation }}"
-                      data-school_expenses="{{ bp.school_expenses }}"
-                      data-personal_needs="{{ bp.personal_needs }}"
-                      data-savings="{{ bp.savings }}"
-                      data-emergency_fund="{{ bp.emergency_fund }}"
+                      data-food="{{ bp.food }}" data-transportation="{{ bp.transportation }}"
+                      data-school_expenses="{{ bp.school_expenses }}" data-personal_needs="{{ bp.personal_needs }}"
+                      data-savings="{{ bp.savings }}" data-emergency_fund="{{ bp.emergency_fund }}"
                       data-other="{{ bp.other }}">
                 <i class="fa-solid fa-pen me-1"></i>Edit
               </button>
@@ -446,16 +439,13 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete_budget">
                 <input type="hidden" name="budget_id" value="{{ bp.id }}">
-                <button type="submit" class="btn btn-ghost-danger btn-sm">
-                  <i class="fa-solid fa-trash me-1"></i>Delete
-                </button>
+                <button type="submit" class="btn btn-ghost-danger btn-sm"><i class="fa-solid fa-trash me-1"></i>Delete</button>
               </form>
             </div>
           </div>
         </div>
       </div>
-      {% endwith %}
-      {% endfor %}
+      {% endwith %}{% endfor %}
     </div>
   </div>
   {% endif %}
@@ -485,6 +475,7 @@
           <div class="col-6">
             <label class="form-label">Type</label>
             <select name="allowance_type" class="form-select">
+              <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="biweekly">Bi-weekly</option>
               <option value="monthly">Monthly</option>
@@ -511,114 +502,105 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  function getCsrf() {
-    const m = document.cookie.match(/(^| )csrftoken=([^;]+)/);
-    return m ? decodeURIComponent(m[2]) : null;
-  }
+  function getCsrf() { const m = document.cookie.match(/(^| )csrftoken=([^;]+)/); return m ? decodeURIComponent(m[2]) : null; }
   const csrf = getCsrf();
   const CATS = ['food','transportation','school_expenses','personal_needs','savings','emergency_fund','other'];
 
-  const totalAmountInput = document.getElementById('budgetTotalAmount');
-  const planForm = document.getElementById('budgetPlanForm');
-
-  function recalcTotals() {
-    const total = parseFloat(totalAmountInput.value) || 0;
-    let allocated = 0;
-    CATS.forEach(function (cat) {
-      allocated += parseFloat(document.getElementById('alloc_' + cat).value) || 0;
+  // Auto-update label when period changes
+  const periodSel  = document.getElementById('newAllowanceType');
+  const nameInput  = document.getElementById('newAllowanceName');
+  const labels = { daily:'Daily School Allowance', weekly:'Weekly Allowance', biweekly:'Bi-weekly Allowance', monthly:'Monthly Allowance' };
+  if (periodSel) {
+    periodSel.addEventListener('change', function () {
+      if (nameInput && (nameInput.value === '' || Object.values(labels).includes(nameInput.value)))
+        nameInput.value = labels[this.value] || 'Allowance';
     });
-    const unalloc = Math.max(0, total - allocated);
-    document.getElementById('totalAllocated').textContent = '₱' + allocated.toFixed(2);
-    document.getElementById('unallocated').textContent = '₱' + unalloc.toFixed(2);
-    document.getElementById('totalPct').textContent = total > 0 ? Math.min(100, Math.round(allocated / total * 100)) + '%' : '0%';
-    CATS.forEach(function (cat) {
-      const v = parseFloat(document.getElementById('alloc_' + cat).value) || 0;
-      const el = document.getElementById('pct_bar_' + cat);
-      if (el) el.textContent = total > 0 ? Math.round(v / total * 100) + '%' : '0%';
+  }
+
+  // Budget allocation live totals
+  const totalInput = document.getElementById('budgetTotalAmount');
+  function recalc() {
+    const total = parseFloat(totalInput?.value) || 0;
+    let alloc = 0;
+    CATS.forEach(c => { alloc += parseFloat(document.getElementById('alloc_' + c)?.value) || 0; });
+    const unalloc = Math.max(0, total - alloc);
+    if (document.getElementById('totalAllocated')) document.getElementById('totalAllocated').textContent = '₱' + alloc.toFixed(2);
+    if (document.getElementById('unallocated'))   document.getElementById('unallocated').textContent   = '₱' + unalloc.toFixed(2);
+    if (document.getElementById('totalPct'))      document.getElementById('totalPct').textContent      = total > 0 ? Math.min(100,Math.round(alloc/total*100))+'%' : '0%';
+    CATS.forEach(c => {
+      const v = parseFloat(document.getElementById('alloc_' + c)?.value) || 0;
+      const el = document.getElementById('pct_bar_' + c);
+      if (el) el.textContent = total > 0 ? Math.round(v/total*100)+'%' : '0%';
     });
     const warn = document.getElementById('allocationWarning');
     const saveBtn = document.getElementById('saveBudgetBtn');
-    if (allocated > total + 0.01) {
-      warn.classList.remove('d-none');
-      if (saveBtn) saveBtn.disabled = true;
-    } else {
-      warn.classList.add('d-none');
-      if (saveBtn) saveBtn.disabled = false;
-    }
+    if (alloc > total + 0.01) { warn?.classList.remove('d-none'); if (saveBtn) saveBtn.disabled = true; }
+    else { warn?.classList.add('d-none'); if (saveBtn) saveBtn.disabled = false; }
   }
+  document.querySelectorAll('.alloc-input').forEach(i => i.addEventListener('input', recalc));
+  totalInput?.addEventListener('input', recalc);
 
-  document.querySelectorAll('.alloc-input').forEach(inp => inp.addEventListener('input', recalcTotals));
-  if (totalAmountInput) totalAmountInput.addEventListener('input', recalcTotals);
-
-  // Suggest button
+  // Advisor suggest button
   const advisorBtn = document.getElementById('advisorBtn');
-  advisorBtn && advisorBtn.addEventListener('click', function () {
-    const amount = document.getElementById('advisorAmount').value;
-    const period = document.getElementById('advisorPeriod').value;
-    const errEl = document.getElementById('advisorError');
-    if (!amount || parseFloat(amount) <= 0) {
-      errEl.textContent = 'Enter a valid amount greater than 0.';
-      errEl.classList.remove('d-none'); return;
-    }
+  const errEl = document.getElementById('advisorError');
+  advisorBtn?.addEventListener('click', function () {
+    const amt = document.getElementById('advisorAmount')?.value;
+    const per = document.getElementById('advisorPeriod')?.value || 'weekly';
+    if (!amt || parseFloat(amt) <= 0) { errEl.textContent='Enter a valid amount.'; errEl.classList.remove('d-none'); return; }
     errEl.classList.add('d-none');
-    advisorBtn.disabled = true;
-    advisorBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Loading…';
-    const fd = new FormData();
-    fd.append('amount', amount); fd.append('period', period);
+    advisorBtn.disabled = true; advisorBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Loading…';
+    const fd = new FormData(); fd.append('amount', amt); fd.append('period', per);
     fetch('{% url "budget_suggest_ajax" %}', { method:'POST', headers:{'X-CSRFToken':csrf}, body:fd })
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) { errEl.textContent = data.error; errEl.classList.remove('d-none'); return; }
-        planForm.classList.remove('d-none');
+      .then(r=>r.json()).then(data => {
+        if (data.error) { errEl.textContent=data.error; errEl.classList.remove('d-none'); return; }
+        document.getElementById('budgetPlanForm').classList.remove('d-none');
         document.getElementById('budgetPlanId').value = '';
-        totalAmountInput.value = Math.round(parseFloat(amount));
-        document.getElementById('budgetPeriodHidden').value = period;
-        document.getElementById('budgetPeriodDisplay').value = period.charAt(0).toUpperCase() + period.slice(1);
-        document.getElementById('budgetAllowanceIdHidden').value = document.getElementById('advisorAllowanceId').value;
-        CATS.forEach(cat => {
-          const v = data[cat] || 0;
-          document.getElementById('alloc_' + cat).value = Math.round(v);
-          const pEl = document.getElementById('pct_' + cat);
-          if (pEl) pEl.textContent = parseFloat(amount) > 0 ? Math.round(v / parseFloat(amount) * 100) + '%' : '0%';
+        if (totalInput) totalInput.value = Math.round(parseFloat(amt));
+        document.getElementById('budgetPeriodHidden').value = per;
+        document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase()+per.slice(1);
+        document.getElementById('budgetAllowanceIdHidden').value = document.getElementById('advisorAllowanceId')?.value || '';
+        CATS.forEach(c => {
+          const v = data[c] || 0;
+          const inp = document.getElementById('alloc_' + c); if (inp) inp.value = Math.round(v);
+          const pEl = document.getElementById('pct_' + c);
+          if (pEl) pEl.textContent = parseFloat(amt)>0 ? Math.round(v/parseFloat(amt)*100)+'%' : '0%';
         });
-        recalcTotals();
-        planForm.scrollIntoView({ behavior:'smooth', block:'start' });
-      })
-      .catch(() => { errEl.textContent = 'Could not load suggestions.'; errEl.classList.remove('d-none'); })
-      .finally(() => {
-        advisorBtn.disabled = false;
-        advisorBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Suggest';
-      });
+        recalc();
+        document.getElementById('budgetPlanForm').scrollIntoView({behavior:'smooth', block:'start'});
+      }).catch(() => { errEl.textContent='Could not load suggestions.'; errEl.classList.remove('d-none'); })
+      .finally(() => { advisorBtn.disabled=false; advisorBtn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Suggest'; });
   });
 
-  // Edit plan button (used by both active plan and accordion)
-  function loadPlanIntoForm(btn) {
-    planForm.classList.remove('d-none');
-    document.getElementById('budgetPlanId').value = btn.dataset.planId || '';
-    totalAmountInput.value = Math.round(parseFloat(btn.dataset.total || 0));
-    const period = btn.dataset.period || 'weekly';
-    document.getElementById('budgetPeriodHidden').value = period;
-    document.getElementById('advisorPeriod').value = period;
-    document.getElementById('budgetPeriodDisplay').value = period.charAt(0).toUpperCase() + period.slice(1);
-    document.getElementById('budgetPeriodStart').value = btn.dataset.start || '';
-    document.getElementById('budgetAllowanceIdHidden').value = btn.dataset.allowance || '';
-    CATS.forEach(cat => {
-      const v = parseFloat(btn.dataset[cat] || 0);
-      document.getElementById('alloc_' + cat).value = Math.round(v);
+  // Auto-suggest when amount + period are filled
+  const amtInput = document.getElementById('advisorAmount');
+  if (amtInput) {
+    amtInput.addEventListener('change', function () {
+      if (parseFloat(this.value) > 0) advisorBtn?.click();
     });
-    recalcTotals();
-    planForm.scrollIntoView({ behavior:'smooth', block:'start' });
   }
-  document.querySelectorAll('.edit-plan-btn').forEach(btn => btn.addEventListener('click', () => loadPlanIntoForm(btn)));
 
-  // Period display sync
-  const periodSel = document.getElementById('advisorPeriod');
-  if (periodSel) {
-    periodSel.addEventListener('change', function () {
-      document.getElementById('budgetPeriodHidden').value = this.value;
-      document.getElementById('budgetPeriodDisplay').value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
-    });
+  // Edit plan button
+  function loadPlan(btn) {
+    document.getElementById('budgetPlanForm').classList.remove('d-none');
+    document.getElementById('budgetPlanId').value = btn.dataset.planId || '';
+    if (totalInput) totalInput.value = Math.round(parseFloat(btn.dataset.total || 0));
+    const per = btn.dataset.period || 'weekly';
+    document.getElementById('budgetPeriodHidden').value = per;
+    document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase()+per.slice(1);
+    if (document.getElementById('advisorPeriod')) document.getElementById('advisorPeriod').value = per;
+    if (document.getElementById('budgetPeriodStart')) document.getElementById('budgetPeriodStart').value = btn.dataset.start||'';
+    if (document.getElementById('budgetAllowanceIdHidden')) document.getElementById('budgetAllowanceIdHidden').value = btn.dataset.allowance||'';
+    CATS.forEach(c => { const inp=document.getElementById('alloc_'+c); if(inp) inp.value=Math.round(parseFloat(btn.dataset[c]||0)); });
+    recalc();
+    document.getElementById('budgetPlanForm').scrollIntoView({behavior:'smooth', block:'start'});
   }
+  document.querySelectorAll('.edit-plan-btn').forEach(b => b.addEventListener('click', () => loadPlan(b)));
+
+  // Period selector sync
+  document.getElementById('advisorPeriod')?.addEventListener('change', function () {
+    document.getElementById('budgetPeriodHidden').value = this.value;
+    document.getElementById('budgetPeriodDisplay').value = this.value.charAt(0).toUpperCase()+this.value.slice(1);
+  });
 });
 </script>
 {% endblock %}

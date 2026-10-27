@@ -2,12 +2,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # ── Auth ──────────────────────────────────────────────────────────────
+    # Auth
     path('', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.register_view, name='register'),
 
-    # ── Core pages ────────────────────────────────────────────────────────
+    # Core pages
     path('home/', views.home, name='dashboard'),
     path('my-allowance/', views.my_allowance, name='my_allowance'),
     path('expenses/', views.expense_items_page, name='expense_items'),
@@ -15,14 +15,17 @@ urlpatterns = [
     path('transactions/', views.transaction_list_page, name='transaction_list'),
     path('profile/', views.profile_page, name='profile'),
 
-    # ── Budget suggestion AJAX (used from My Allowance page) ──────────────
+    # Allowance safe-delete confirmation page
+    path('allowance/delete-confirm/<int:pk>/', views.allowance_delete_confirm, name='allowance_delete_confirm'),
+
+    # Budget suggestion AJAX
     path('budget/suggest/', views.budget_suggest_ajax, name='budget_suggest_ajax'),
 
-    # ── Allowance AJAX ────────────────────────────────────────────────────
+    # Allowance AJAX
     path('allowance/save/', views.allowance_save_ajax, name='allowance_save_ajax'),
     path('allowance/delete/<int:pk>/', views.allowance_delete_ajax, name='allowance_delete_ajax'),
 
-    # ── Legacy redirects (old URLs still resolve) ────────────────────────
+    # Legacy redirects
     path('expenses-old/', views.expenses_page, name='expenses'),
     path('savings-goals/', views.savings_goals_page, name='savings_goals'),
     path('budget-planner/', views.budget_planner_page, name='budget_planner'),
@@ -30,7 +33,7 @@ urlpatterns = [
     path('reports/', views.reports_page, name='reports'),
     path('suggestions/', views.suggestions_page, name='suggestions'),
 
-    # ── Legacy AJAX ───────────────────────────────────────────────────────
+    # Legacy AJAX
     path('income/save/', views.income_save_ajax, name='income_save_ajax'),
     path('income/delete/<int:pk>/', views.income_delete_ajax, name='income_delete_ajax'),
     path('expense/save/', views.expense_save_ajax, name='expense_save_ajax'),

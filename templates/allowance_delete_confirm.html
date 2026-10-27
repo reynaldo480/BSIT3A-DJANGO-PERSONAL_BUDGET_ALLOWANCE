@@ -1,0 +1,86 @@
+{% extends "theme/base.html" %}
+{% block title %}Confirm Delete Allowance — BudgetTrack{% endblock %}
+{% block content %}
+<div class="container-xl pb-4" style="max-width:600px;">
+  <div class="page-header">
+    <div class="page-pretitle">My Allowance</div>
+    <h2 class="page-title">Confirm Allowance Deletion</h2>
+  </div>
+
+  <div class="card border-2" style="border-color:var(--bt-danger)!important;">
+    <div class="card-header" style="background:var(--bt-danger-light);">
+      <div class="card-title text-danger">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>This action will be permanently recorded
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="alert alert-warning mb-4">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        <strong>Financial Safety Notice:</strong>
+        Deleting an allowance record does not erase it from history.
+        The deletion will be logged in your activity history with a timestamp so you always know what happened to your money.
+      </div>
+
+      <!-- Allowance details -->
+      <div class="mb-4 p-3 rounded-3" style="background:var(--bt-surface-2);border:1px solid var(--bt-border);">
+        <div class="row g-2">
+          <div class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Label</div>
+          <div class="col-sm-8" style="font-size:.9rem;font-weight:700;">{{ allowance.name }}</div>
+          <div class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Amount</div>
+          <div class="col-sm-8 text-danger" style="font-size:1.2rem;font-weight:800;">₱{{ allowance.amount|floatformat:2 }}</div>
+          <div class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Type</div>
+          <div class="col-sm-8">{{ allowance.get_allowance_type_display }}</div>
+          <div class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Date</div>
+          <div class="col-sm-8">{{ allowance.date_received|date:"M d, Y" }}</div>
+          {% if allowance.description %}
+          <div class="col-sm-4 text-muted" style="font-size:.82rem;font-weight:600;">Description</div>
+          <div class="col-sm-8">{{ allowance.description }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Balance impact -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 text-center" style="background:var(--bt-success-light);border:1px solid rgba(18,183,106,.2);">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bt-success);">Current Balance</div>
+            <div style="font-size:1.4rem;font-weight:800;color:var(--bt-success);">₱{{ balance_now|floatformat:2 }}</div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 text-center" style="background:var(--bt-danger-light);border:1px solid rgba(240,68,56,.2);">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bt-danger);">Balance After Deletion</div>
+            <div style="font-size:1.4rem;font-weight:800;color:var(--bt-danger);">₱{{ balance_after_deletion|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deletion form -->
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label">Reason for deletion <span class="text-muted">(optional but recommended)</span></label>
+          <input type="text" name="reason" class="form-control" placeholder="e.g. Entered wrong amount, duplicate entry...">
+          <div class="form-text">This reason will be saved in your activity history.</div>
+        </div>
+
+        <div class="d-flex gap-3">
+          <a href="{% url 'my_allowance' %}" class="btn btn-ghost-secondary flex-grow-1">
+            <i class="fa-solid fa-arrow-left me-2"></i>Cancel — Keep Allowance
+          </a>
+          <button type="submit" class="btn btn-danger flex-grow-1">
+            <i class="fa-solid fa-trash me-2"></i>Yes, Delete and Record It
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <div class="mt-3 text-muted text-center" style="font-size:.78rem;">
+    <i class="fa-solid fa-lock me-1"></i>
+    This deletion will be permanently recorded in your activity history. It cannot be undone.
+  </div>
+</div>
+{% endblock %}

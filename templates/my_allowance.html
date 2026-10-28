@@ -179,29 +179,31 @@
   </div>
 
   <!-- ═══════════════ SMART BUDGET PLANNER ═══════════════ -->
-  <div class="card mb-4">
+  <div class="card mb-4" id="smartPlannerCard">
     <div class="card-header">
       <div class="card-title">
         <i class="fa-solid fa-lightbulb me-2" style="color:var(--bt-warning);"></i>Smart Budget Planner
-        <small class="ms-2 fw-normal text-muted" style="font-size:.75rem;">Enter amount → auto-suggestions appear below</small>
+      </div>
+      <div class="card-actions">
+        <span class="badge bg-secondary-lt" style="font-size:.68rem;">
+          <i class="fa-solid fa-circle-info me-1"></i>Saving a plan does not deduct money
+        </span>
       </div>
     </div>
     <div class="card-body">
-      <div class="alert alert-info py-2 mb-3" style="font-size:.82rem;">
-        <i class="fa-solid fa-circle-info me-2"></i>
-        Saving a budget plan does <strong>not</strong> deduct money. It is a spending guide only.
-      </div>
 
+      <!-- ── Step 1: Enter amount + period ── -->
       <div class="row g-3 align-items-end mb-3">
         <div class="col-md-4">
-          <label class="form-label">Allowance Amount (₱)</label>
+          <label class="form-label fw-600">Allowance Amount (₱)</label>
           <div class="input-group">
             <span class="input-group-text">₱</span>
-            <input type="number" step="1" min="1" id="advisorAmount" class="form-control" placeholder="e.g. 100">
+            <input type="number" step="0.01" min="0.01" id="advisorAmount"
+                   class="form-control" placeholder="e.g. 100" autocomplete="off">
           </div>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Budget Period</label>
+          <label class="form-label fw-600">Budget Period</label>
           <select id="advisorPeriod" class="form-select">
             <option value="daily">Daily</option>
             <option value="weekly" selected>Weekly</option>
@@ -209,11 +211,11 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Link to Allowance <span class="text-muted">(opt.)</span></label>
+          <label class="form-label fw-600">Link to Allowance <span class="text-muted fw-normal">(opt.)</span></label>
           <select id="advisorAllowanceId" class="form-select">
             <option value="">— not linked —</option>
             {% for a in allowances %}
-            <option value="{{ a.id }}">{{ a.name }} · ₱{{ a.amount|floatformat:2 }} · {{ a.date_received|date:"M d" }}</option>
+            <option value="{{ a.id }}">{{ a.name }} · ₱{{ a.amount|floatformat:2 }}</option>
             {% endfor %}
           </select>
         </div>
@@ -223,9 +225,66 @@
           </button>
         </div>
       </div>
-      <div id="advisorError" class="alert alert-danger d-none mb-0 py-2"></div>
+      <div id="advisorError" class="alert alert-danger d-none mb-2 py-2" style="font-size:.82rem;"></div>
+      <div id="advisorLoading" class="d-none text-center py-3">
+        <i class="fa-solid fa-spinner fa-spin text-warning me-2"></i>
+        <span class="text-muted" style="font-size:.85rem;">Analysing your allowance…</span>
+      </div>
 
-      <!-- Budget plan form -->
+      <!-- ── Coaching message panel ── -->
+      <div id="coachingPanel" class="d-none mb-3">
+        <div class="bt-coaching-bubble">
+          <div class="bt-coaching-avatar"><i class="fa-solid fa-lightbulb"></i></div>
+          <div class="bt-coaching-content">
+            <div id="coachingMessage" style="font-size:.88rem;line-height:1.65;"></div>
+            <div id="coachingFollowUp" class="mt-2 text-muted d-none" style="font-size:.8rem;font-style:italic;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Budget advice quick-actions (integrated into planner) ── -->
+      <div id="plannerAdvicePanel" class="mb-3">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button class="btn btn-sm btn-ghost-secondary planner-coach-btn" data-intent="daily_limit">
+            <i class="fa-solid fa-calendar-day me-1"></i>Daily limit
+          </button>
+          <button class="btn btn-sm btn-ghost-secondary planner-coach-btn" data-intent="save_more">
+            <i class="fa-solid fa-piggy-bank me-1"></i>Save more
+          </button>
+          <button class="btn btn-sm btn-ghost-secondary planner-coach-btn" data-intent="afford_goal">
+            <i class="fa-solid fa-bullseye me-1"></i>Afford my goal
+          </button>
+          <button class="btn btn-sm btn-ghost-secondary planner-coach-btn" data-intent="review_spending">
+            <i class="fa-solid fa-chart-bar me-1"></i>Review spending
+          </button>
+          <select id="plannerAdvicePeriod" class="form-select form-select-sm ms-auto" style="width:auto;">
+            <option value="daily">Daily</option>
+            <option value="weekly" selected>Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div id="plannerAdviceLoading" class="d-none py-2 text-center">
+          <i class="fa-solid fa-spinner fa-spin text-warning me-1"></i>
+          <span class="text-muted" style="font-size:.82rem;">Analysing…</span>
+        </div>
+        <div id="plannerAdviceResult" class="d-none">
+          <div class="bt-coaching-bubble">
+            <div class="bt-coaching-avatar"><i class="fa-solid fa-lightbulb"></i></div>
+            <div class="bt-coaching-content">
+              <div id="plannerAdviceMessage" style="font-size:.86rem;line-height:1.65;"></div>
+              <div id="plannerAdviceFollowUp" class="mt-1 text-muted d-none" style="font-size:.78rem;font-style:italic;"></div>
+              <div id="plannerAdviceSuggestions" class="mt-2 d-none">
+                <div id="plannerAdviceSuggList" class="d-flex flex-column gap-1 mt-1"></div>
+              </div>
+              <div id="plannerAdviceBreakdown" class="mt-2 d-none">
+                <div id="plannerAdviceBreakList" class="row g-2 mt-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Budget plan form ── -->
       <div id="budgetPlanForm" class="d-none">
         <hr class="my-3">
         <form method="post" id="saveBudgetForm">
@@ -234,75 +293,108 @@
           <input type="hidden" name="budget_id" id="budgetPlanId">
           <input type="hidden" name="budget_allowance_id" id="budgetAllowanceIdHidden">
           <input type="hidden" name="budget_period" id="budgetPeriodHidden" value="weekly">
+
           <div class="row g-3 mb-3">
             <div class="col-md-4">
-              <label class="form-label">Budget Total (₱)</label>
+              <label class="form-label fw-600">Budget Total (₱)</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input type="number" step="1" min="1" name="budget_total_amount" id="budgetTotalAmount" class="form-control" required>
+                <input type="number" step="0.01" min="0.01" name="budget_total_amount"
+                       id="budgetTotalAmount" class="form-control" required>
               </div>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Period Start Date</label>
-              <input type="date" name="budget_period_start" id="budgetPeriodStart" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+              <label class="form-label fw-600">Period Start Date</label>
+              <input type="date" name="budget_period_start" id="budgetPeriodStart"
+                     class="form-control" value="{{ today|date:'Y-m-d' }}" required>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Period</label>
-              <input type="text" id="budgetPeriodDisplay" class="form-control" readonly style="background:var(--bt-surface-2);">
+              <label class="form-label fw-600">Period</label>
+              <input type="text" id="budgetPeriodDisplay" class="form-control"
+                     readonly style="background:var(--bt-surface-2);">
             </div>
           </div>
-          <div class="card mb-3" style="border:1.5px solid var(--bt-border);">
-            <div class="table-responsive">
-              <table class="table table-vcenter mb-0">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th style="width:80px;">Suggested</th>
-                    <th style="width:160px;">Your Amount (₱)</th>
-                    <th class="text-end" style="width:70px;">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for cat in budget_categories %}
-                  <tr>
-                    <td style="font-weight:500;">{{ budget_cat_labels|get_item:cat }}</td>
-                    <td><span class="text-muted" id="pct_{{ cat }}" style="font-size:.75rem;">—</span></td>
-                    <td>
-                      <div class="input-group input-group-sm">
-                        <span class="input-group-text">₱</span>
-                        <input type="number" step="1" min="0" name="alloc_{{ cat }}"
-                               id="alloc_{{ cat }}" class="form-control alloc-input" value="0">
-                      </div>
-                    </td>
-                    <td class="text-end text-muted" id="pct_bar_{{ cat }}" style="font-size:.75rem;">0%</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-                <tfoot style="background:var(--bt-surface-2);">
-                  <tr>
-                    <td colspan="2" style="font-weight:700;">Total Allocated</td>
-                    <td><span id="totalAllocated" class="fw-700 text-primary">₱0</span></td>
-                    <td class="text-end text-muted" id="totalPct" style="font-size:.75rem;">0%</td>
-                  </tr>
-                  <tr>
-                    <td colspan="2" class="text-muted" style="font-size:.78rem;">Unallocated</td>
-                    <td><span id="unallocated" class="text-success fw-600">₱0</span></td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+
+          <!-- Category allocation table -->
+          <div class="bt-alloc-table mb-3">
+            <div class="bt-alloc-header row g-0 px-3 py-2">
+              <div class="col-5 fw-600" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">Category</div>
+              <div class="col-3 fw-600 text-end" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">Suggested</div>
+              <div class="col-3 fw-600 text-center" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">Your Amount</div>
+              <div class="col-1 fw-600 text-end" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">%</div>
+            </div>
+            {% for cat in budget_categories %}
+            <div class="bt-alloc-row row g-0 align-items-center px-3 py-2" id="row_{{ cat }}"
+                 data-cat="{{ cat }}">
+              <div class="col-5 d-flex align-items-center gap-2">
+                <span class="bt-cat-dot" id="dot_{{ cat }}"></span>
+                <div>
+                  <div class="fw-600" style="font-size:.845rem;">{{ budget_cat_labels|get_item:cat }}</div>
+                  <div class="text-muted bt-cat-reason d-none" id="reason_{{ cat }}" style="font-size:.7rem;line-height:1.4;"></div>
+                </div>
+              </div>
+              <div class="col-3 text-end">
+                <span class="text-muted" id="sugg_{{ cat }}" style="font-size:.8rem;">—</span>
+              </div>
+              <div class="col-3">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text px-2">₱</span>
+                  <input type="number" step="0.01" min="0" name="alloc_{{ cat }}"
+                         id="alloc_{{ cat }}" class="form-control alloc-input"
+                         value="0" style="font-size:.82rem;">
+                </div>
+              </div>
+              <div class="col-1 text-end text-muted" id="pct_bar_{{ cat }}"
+                   style="font-size:.75rem;">0%</div>
+            </div>
+            <div class="bt-alloc-progress px-3" id="progress_{{ cat }}">
+              <div class="progress" style="height:3px;border-radius:2px;">
+                <div class="progress-bar" id="pbar_{{ cat }}" style="width:0%;background:#6b7280;"></div>
+              </div>
+            </div>
+            {% endfor %}
+
+            <!-- Totals footer -->
+            <div class="bt-alloc-footer row g-0 px-3 py-2 mt-1">
+              <div class="col-5 fw-700" style="font-size:.845rem;">Total Allocated</div>
+              <div class="col-3 text-end"></div>
+              <div class="col-3">
+                <span id="totalAllocated" class="fw-700 text-primary" style="font-size:.9rem;">₱0.00</span>
+              </div>
+              <div class="col-1 text-end text-muted" id="totalPct" style="font-size:.75rem;">0%</div>
+            </div>
+            <div class="row g-0 px-3 pb-2">
+              <div class="col-5 text-muted" style="font-size:.78rem;">Unallocated Remainder</div>
+              <div class="col-3"></div>
+              <div class="col-3">
+                <span id="unallocated" class="fw-600 text-success" style="font-size:.85rem;">₱0.00</span>
+              </div>
+              <div class="col-1"></div>
             </div>
           </div>
+
           <div id="allocationWarning" class="alert alert-danger d-none mb-3 py-2" style="font-size:.82rem;">
-            <i class="fa-solid fa-triangle-exclamation me-2"></i>Total allocation exceeds the budget amount.
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            Total allocation exceeds the budget amount. Reduce one or more categories.
           </div>
+          <div id="allocationOk" class="alert alert-success d-none mb-3 py-2" style="font-size:.82rem;">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            Allocations look good! You can save this plan.
+          </div>
+
           <div class="row g-3 align-items-end">
-            <div class="col-md-8">
-              <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
-              <input type="text" name="budget_notes" class="form-control" placeholder="e.g. Week of Oct 27">
+            <div class="col-md-5">
+              <label class="form-label">Plan Name <span class="text-muted">(optional)</span></label>
+              <input type="text" name="budget_plan_name" id="budgetPlanName" class="form-control"
+                     maxlength="120" placeholder="e.g. Weekly Budget Oct 27">
             </div>
             <div class="col-md-4">
-              <button type="submit" class="btn btn-success w-100" id="saveBudgetBtn">
+              <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+              <input type="text" name="budget_notes" class="form-control"
+                     placeholder="e.g. From mom's allowance">
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-success w-100 btn-lg" id="saveBudgetBtn">
                 <i class="fa-solid fa-floppy-disk me-2"></i>Save Budget Plan
               </button>
             </div>
@@ -391,64 +483,222 @@
   </div>
   {% endif %}
 
-  <!-- Saved budget plans accordion -->
-  {% if plans_with_tracking %}
-  <div class="card mb-4">
-    <div class="card-header"><div class="card-title"><i class="fa-solid fa-folder me-2"></i>Saved Budget Plans</div></div>
-    <div class="accordion accordion-flush" id="plansAccordion">
-      {% for entry in plans_with_tracking %}{% with bp=entry.plan %}
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#plan-{{ bp.id }}">
-            <span class="badge bg-primary-lt me-2">{{ bp.get_period_display }}</span>
-            <span style="font-weight:600;font-size:.845rem;">{{ bp.period_start|date:"M d" }} – {{ bp.period_end|date:"M d, Y" }}</span>
-            <span class="ms-auto me-3 text-muted" style="font-size:.75rem;">₱{{ bp.total_amount|floatformat:2 }}</span>
-            <span class="text-danger" style="font-size:.75rem;">Spent ₱{{ entry.total_spent|floatformat:2 }}</span>
-          </button>
-        </h2>
-        <div id="plan-{{ bp.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
-          <div class="accordion-body">
-            <div class="row g-2 mb-3">
-              {% for row in entry.tracking %}{% if row.planned > 0 %}
-              <div class="col-sm-6 col-md-4">
-                <div class="d-flex justify-content-between mb-1">
-                  <span style="font-size:.82rem;">{{ row.label }}</span>
-                  <span style="font-size:.75rem;" class="{% if row.over_budget %}text-danger{% else %}text-muted{% endif %}">
-                    ₱{{ row.spent|floatformat:2 }}/₱{{ row.planned|floatformat:2 }}
-                  </span>
-                </div>
-                <div class="progress" style="height:3px;">
-                  <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}" style="width:{{ row.pct }}%"></div>
+  <!-- ═══════════════ SAVED BUDGET PLANS ═══════════════ -->
+  <div class="card mb-4" id="savedPlansCard">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="fa-solid fa-folder-open me-2 text-primary"></i>Saved Budget Plans
+      </div>
+      {% if plans_with_tracking %}
+      <div class="card-actions">
+        <span class="badge bg-primary-lt">{{ plans_with_tracking|length }} active</span>
+        {% if archived_plans %}
+        <button class="btn btn-ghost-secondary btn-sm ms-1" type="button"
+                data-bs-toggle="collapse" data-bs-target="#archivedPlansCollapse">
+          <i class="fa-solid fa-box-archive me-1"></i>{{ archived_plans|length }} archived
+        </button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+
+      {% if plans_with_tracking %}
+      <div class="accordion accordion-flush" id="plansAccordion">
+        {% for entry in plans_with_tracking %}{% with bp=entry.plan %}
+        <div class="accordion-item" id="planItem-{{ bp.id }}">
+          <h2 class="accordion-header">
+            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} py-3"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#plan-{{ bp.id }}">
+              <div class="d-flex align-items-center gap-2 flex-grow-1 me-3">
+                <span class="badge bg-primary-lt flex-shrink-0">{{ bp.get_period_display }}</span>
+                <div class="min-w-0">
+                  <div class="fw-600" style="font-size:.875rem;">
+                    {{ bp.display_name }}
+                  </div>
+                  <div class="text-muted" style="font-size:.72rem;">
+                    {{ bp.period_start|date:"M d" }} – {{ bp.period_end|date:"M d, Y" }}
+                    &bull; Created {{ bp.created_at|date:"M d, Y" }}
+                  </div>
                 </div>
               </div>
-              {% endif %}{% endfor %}
-            </div>
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-ghost-secondary btn-sm edit-plan-btn"
-                      data-plan-id="{{ bp.id }}" data-total="{{ bp.total_amount }}"
-                      data-period="{{ bp.period }}" data-start="{{ bp.period_start|date:'Y-m-d' }}"
-                      data-allowance="{{ bp.allowance_id|default:'' }}"
-                      data-food="{{ bp.food }}" data-transportation="{{ bp.transportation }}"
-                      data-school_expenses="{{ bp.school_expenses }}" data-personal_needs="{{ bp.personal_needs }}"
-                      data-savings="{{ bp.savings }}" data-emergency_fund="{{ bp.emergency_fund }}"
-                      data-other="{{ bp.other }}">
-                <i class="fa-solid fa-pen me-1"></i>Edit
-              </button>
-              <form method="post" style="display:inline;" onsubmit="return confirm('Delete this budget plan?');">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete_budget">
-                <input type="hidden" name="budget_id" value="{{ bp.id }}">
-                <button type="submit" class="btn btn-ghost-danger btn-sm"><i class="fa-solid fa-trash me-1"></i>Delete</button>
-              </form>
+              <div class="d-flex align-items-center gap-3 me-2 flex-shrink-0">
+                <div class="text-end">
+                  <div class="fw-600" style="font-size:.82rem;">₱{{ bp.total_amount|floatformat:2 }}</div>
+                  <div style="font-size:.7rem;" class="{% if entry.total_spent > bp.total_amount %}text-danger{% else %}text-muted{% endif %}">
+                    Spent ₱{{ entry.total_spent|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </h2>
+          <div id="plan-{{ bp.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
+            <div class="accordion-body pt-2 pb-3">
+
+              <!-- Mini summary bar -->
+              <div class="row g-2 mb-3">
+                <div class="col-4">
+                  <div class="text-center p-2 rounded-3" style="background:rgba(59,91,219,.08);border:1px solid rgba(59,91,219,.15);">
+                    <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;color:var(--bt-text-muted);">Planned</div>
+                    <div style="font-size:.95rem;font-weight:700;color:var(--bt-primary);">₱{{ bp.total_allocated|floatformat:2 }}</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="text-center p-2 rounded-3" style="background:rgba(240,68,56,.08);border:1px solid rgba(240,68,56,.15);">
+                    <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;color:var(--bt-text-muted);">Spent</div>
+                    <div style="font-size:.95rem;font-weight:700;color:var(--bt-danger);">₱{{ entry.total_spent|floatformat:2 }}</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="text-center p-2 rounded-3" style="background:rgba(18,183,106,.08);border:1px solid rgba(18,183,106,.15);">
+                    <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;color:var(--bt-text-muted);">Unallocated</div>
+                    <div style="font-size:.95rem;font-weight:700;color:var(--bt-success);">₱{{ bp.unallocated|floatformat:2 }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Category progress rows -->
+              <div class="row g-2 mb-3">
+                {% for row in entry.tracking %}{% if row.planned > 0 %}
+                <div class="col-sm-6 col-md-4">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span style="font-size:.8rem;font-weight:500;">{{ row.label }}</span>
+                    <span style="font-size:.72rem;" class="{% if row.over_budget %}text-danger fw-600{% else %}text-muted{% endif %}">
+                      ₱{{ row.spent|floatformat:2 }} / ₱{{ row.planned|floatformat:2 }}
+                      {% if row.over_budget %}<i class="fa-solid fa-triangle-exclamation ms-1"></i>{% endif %}
+                    </span>
+                  </div>
+                  <div class="progress mb-1" style="height:4px;">
+                    <div class="progress-bar {% if row.over_budget %}bg-danger{% elif row.pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
+                         style="width:{{ row.pct }}%"></div>
+                  </div>
+                  <div class="text-muted" style="font-size:.68rem;">
+                    {% if row.over_budget %}
+                      <span class="text-danger">Over by ₱{{ row.spent|subtract:row.planned|floatformat:2 }}</span>
+                    {% elif row.pct >= 80 %}
+                      <span class="text-warning">₱{{ row.remaining|floatformat:2 }} left — near limit</span>
+                    {% else %}
+                      ₱{{ row.remaining|floatformat:2 }} remaining
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}{% endfor %}
+              </div>
+
+              {% if bp.notes %}
+              <div class="text-muted mb-3" style="font-size:.78rem;">
+                <i class="fa-solid fa-note-sticky me-1"></i>{{ bp.notes }}
+              </div>
+              {% endif %}
+
+              <!-- Action buttons -->
+              <div class="d-flex flex-wrap gap-2">
+                <!-- Load Plan into Planner -->
+                <button type="button" class="btn btn-primary btn-sm load-plan-btn"
+                        data-plan-id="{{ bp.id }}"
+                        data-total="{{ bp.total_amount }}"
+                        data-period="{{ bp.period }}"
+                        data-start="{{ bp.period_start|date:'Y-m-d' }}"
+                        data-name="{{ bp.name }}"
+                        data-allowance="{{ bp.allowance_id|default:'' }}"
+                        data-food="{{ bp.food }}"
+                        data-transportation="{{ bp.transportation }}"
+                        data-school_expenses="{{ bp.school_expenses }}"
+                        data-personal_needs="{{ bp.personal_needs }}"
+                        data-savings="{{ bp.savings }}"
+                        data-emergency_fund="{{ bp.emergency_fund }}"
+                        data-other="{{ bp.other }}">
+                  <i class="fa-solid fa-upload me-1"></i>Load Plan
+                </button>
+
+                <!-- Rename -->
+                <button type="button" class="btn btn-ghost-secondary btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#renamePlanModal"
+                        data-plan-id="{{ bp.id }}" data-plan-name="{{ bp.display_name }}">
+                  <i class="fa-solid fa-pen me-1"></i>Rename
+                </button>
+
+                <!-- Archive -->
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="archive_budget">
+                  <input type="hidden" name="budget_id" value="{{ bp.id }}">
+                  <button type="submit" class="btn btn-ghost-secondary btn-sm"
+                          onclick="return confirm('Archive this plan? It will be hidden from the main list but not deleted.');">
+                    <i class="fa-solid fa-box-archive me-1"></i>Archive
+                  </button>
+                </form>
+
+                <!-- Delete -->
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_budget">
+                  <input type="hidden" name="budget_id" value="{{ bp.id }}">
+                  <button type="submit" class="btn btn-ghost-danger btn-sm"
+                          onclick="return confirm('Permanently delete this budget plan? This cannot be undone.');">
+                    <i class="fa-solid fa-trash me-1"></i>Delete
+                  </button>
+                </form>
+              </div>
+
             </div>
           </div>
         </div>
+        {% endwith %}{% endfor %}
       </div>
-      {% endwith %}{% endfor %}
+
+      {% else %}
+      <div class="bt-empty py-4">
+        <div class="bt-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+        <div class="bt-empty-title">No saved budget plans yet</div>
+        <div class="bt-empty-sub">Use the Smart Budget Planner above to create and save your first plan.</div>
+      </div>
+      {% endif %}
+
+      <!-- Archived plans (collapsed by default) -->
+      {% if archived_plans %}
+      <div class="collapse" id="archivedPlansCollapse">
+        <div class="px-3 py-2" style="border-top:1px solid var(--bt-border);">
+          <div class="text-muted fw-600 mb-2" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">
+            <i class="fa-solid fa-box-archive me-1"></i>Archived Plans
+          </div>
+          {% for bp in archived_plans %}
+          <div class="d-flex align-items-center justify-content-between py-2"
+               style="border-bottom:1px solid var(--bt-border);">
+            <div>
+              <div class="fw-600" style="font-size:.82rem;">{{ bp.display_name }}</div>
+              <div class="text-muted" style="font-size:.7rem;">
+                {{ bp.get_period_display }} &bull; {{ bp.period_start|date:"M d" }}–{{ bp.period_end|date:"M d, Y" }}
+                &bull; ₱{{ bp.total_amount|floatformat:2 }}
+              </div>
+            </div>
+            <div class="d-flex gap-2 flex-shrink-0">
+              <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="archive_budget">
+                <input type="hidden" name="budget_id" value="{{ bp.id }}">
+                <button type="submit" class="btn btn-ghost-secondary btn-sm" title="Unarchive">
+                  <i class="fa-solid fa-box-open me-1"></i>Unarchive
+                </button>
+              </form>
+              <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_budget">
+                <input type="hidden" name="budget_id" value="{{ bp.id }}">
+                <button type="submit" class="btn btn-ghost-danger btn-sm"
+                        onclick="return confirm('Permanently delete this archived plan?');">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
-  {% endif %}
 
 </div>
 
@@ -499,107 +749,360 @@
   </div>
 </div>
 
+<!-- Rename Budget Plan Modal -->
+<div class="modal modal-blur fade" id="renamePlanModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-pen me-2 text-primary"></i>Rename Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="rename_budget">
+        <input type="hidden" name="budget_id" id="renamePlanId">
+        <div class="modal-body">
+          <label class="form-label fw-600">New Plan Name</label>
+          <input type="text" name="budget_plan_name" id="renamePlanName"
+                 class="form-control" maxlength="120" required
+                 placeholder="e.g. Weekly Budget Nov 3">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-check me-1"></i>Rename
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  function getCsrf() { const m = document.cookie.match(/(^| )csrftoken=([^;]+)/); return m ? decodeURIComponent(m[2]) : null; }
-  const csrf = getCsrf();
-  const CATS = ['food','transportation','school_expenses','personal_needs','savings','emergency_fund','other'];
+  /* ── Helpers ── */
+  function csrf() {
+    const m = document.cookie.match(/(^| )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+  function post(url, data) {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => fd.append(k, v));
+    return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf() }, body: fd });
+  }
 
-  // Auto-update label when period changes
-  const periodSel  = document.getElementById('newAllowanceType');
-  const nameInput  = document.getElementById('newAllowanceName');
-  const labels = { daily:'Daily School Allowance', weekly:'Weekly Allowance', biweekly:'Bi-weekly Allowance', monthly:'Monthly Allowance' };
+  const CATS = ['food','transportation','school_expenses','personal_needs',
+                'savings','emergency_fund','other'];
+  const CAT_COLORS = {
+    food:'#f59e0b', transportation:'#3b82f6', school_expenses:'#8b5cf6',
+    personal_needs:'#ec4899', savings:'#10b981', emergency_fund:'#06b6d4', other:'#6b7280'
+  };
+
+  /* ── Auto-label for "Add Allowance" form ── */
+  const periodSel = document.getElementById('newAllowanceType');
+  const nameInput = document.getElementById('newAllowanceName');
+  const labelMap  = { daily:'Daily School Allowance', weekly:'Weekly Allowance',
+                      biweekly:'Bi-weekly Allowance', monthly:'Monthly Allowance' };
   if (periodSel) {
     periodSel.addEventListener('change', function () {
-      if (nameInput && (nameInput.value === '' || Object.values(labels).includes(nameInput.value)))
-        nameInput.value = labels[this.value] || 'Allowance';
+      if (nameInput && (!nameInput.value || Object.values(labelMap).includes(nameInput.value)))
+        nameInput.value = labelMap[this.value] || 'Allowance';
     });
   }
 
-  // Budget allocation live totals
+  /* ─────────────────────────────────────────────────────────
+     SMART BUDGET PLANNER
+     ───────────────────────────────────────────────────────── */
   const totalInput = document.getElementById('budgetTotalAmount');
+
+  /* Apply category colors to dots */
+  function applyColors() {
+    CATS.forEach(cat => {
+      const dot = document.getElementById('dot_' + cat);
+      if (dot) dot.style.background = CAT_COLORS[cat] || '#6b7280';
+    });
+  }
+  applyColors();
+
+  /* Live recalc totals + progress bars */
   function recalc() {
     const total = parseFloat(totalInput?.value) || 0;
     let alloc = 0;
     CATS.forEach(c => { alloc += parseFloat(document.getElementById('alloc_' + c)?.value) || 0; });
     const unalloc = Math.max(0, total - alloc);
-    if (document.getElementById('totalAllocated')) document.getElementById('totalAllocated').textContent = '₱' + alloc.toFixed(2);
-    if (document.getElementById('unallocated'))   document.getElementById('unallocated').textContent   = '₱' + unalloc.toFixed(2);
-    if (document.getElementById('totalPct'))      document.getElementById('totalPct').textContent      = total > 0 ? Math.min(100,Math.round(alloc/total*100))+'%' : '0%';
+
+    const tEl = document.getElementById('totalAllocated');
+    const uEl = document.getElementById('unallocated');
+    const pEl = document.getElementById('totalPct');
+    if (tEl) tEl.textContent = '₱' + alloc.toFixed(2);
+    if (uEl) { uEl.textContent = '₱' + unalloc.toFixed(2); uEl.style.color = unalloc > 0 ? 'var(--bt-success)' : 'var(--bt-text-muted)'; }
+    if (pEl) pEl.textContent = total > 0 ? Math.min(100, Math.round(alloc / total * 100)) + '%' : '0%';
+
     CATS.forEach(c => {
-      const v = parseFloat(document.getElementById('alloc_' + c)?.value) || 0;
-      const el = document.getElementById('pct_bar_' + c);
-      if (el) el.textContent = total > 0 ? Math.round(v/total*100)+'%' : '0%';
+      const v    = parseFloat(document.getElementById('alloc_' + c)?.value) || 0;
+      const pct  = total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
+      const pBar = document.getElementById('pbar_' + c);
+      const pTxt = document.getElementById('pct_bar_' + c);
+      if (pBar) { pBar.style.width = pct + '%'; pBar.style.background = CAT_COLORS[c] || '#6b7280'; }
+      if (pTxt) pTxt.textContent = pct + '%';
     });
-    const warn = document.getElementById('allocationWarning');
+
+    const warnEl  = document.getElementById('allocationWarning');
+    const okEl    = document.getElementById('allocationOk');
     const saveBtn = document.getElementById('saveBudgetBtn');
-    if (alloc > total + 0.01) { warn?.classList.remove('d-none'); if (saveBtn) saveBtn.disabled = true; }
-    else { warn?.classList.add('d-none'); if (saveBtn) saveBtn.disabled = false; }
+    const over    = alloc > total + 0.005;
+    if (warnEl) warnEl.classList.toggle('d-none', !over);
+    if (okEl)   okEl.classList.toggle('d-none',   over || alloc === 0);
+    if (saveBtn) saveBtn.disabled = over;
   }
+
   document.querySelectorAll('.alloc-input').forEach(i => i.addEventListener('input', recalc));
   totalInput?.addEventListener('input', recalc);
 
-  // Advisor suggest button
-  const advisorBtn = document.getElementById('advisorBtn');
-  const errEl = document.getElementById('advisorError');
-  advisorBtn?.addEventListener('click', function () {
-    const amt = document.getElementById('advisorAmount')?.value;
-    const per = document.getElementById('advisorPeriod')?.value || 'weekly';
-    if (!amt || parseFloat(amt) <= 0) { errEl.textContent='Enter a valid amount.'; errEl.classList.remove('d-none'); return; }
-    errEl.classList.add('d-none');
-    advisorBtn.disabled = true; advisorBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Loading…';
-    const fd = new FormData(); fd.append('amount', amt); fd.append('period', per);
-    fetch('{% url "budget_suggest_ajax" %}', { method:'POST', headers:{'X-CSRFToken':csrf}, body:fd })
-      .then(r=>r.json()).then(data => {
-        if (data.error) { errEl.textContent=data.error; errEl.classList.remove('d-none'); return; }
-        document.getElementById('budgetPlanForm').classList.remove('d-none');
-        document.getElementById('budgetPlanId').value = '';
-        if (totalInput) totalInput.value = Math.round(parseFloat(amt));
-        document.getElementById('budgetPeriodHidden').value = per;
-        document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase()+per.slice(1);
-        document.getElementById('budgetAllowanceIdHidden').value = document.getElementById('advisorAllowanceId')?.value || '';
-        CATS.forEach(c => {
-          const v = data[c] || 0;
-          const inp = document.getElementById('alloc_' + c); if (inp) inp.value = Math.round(v);
-          const pEl = document.getElementById('pct_' + c);
-          if (pEl) pEl.textContent = parseFloat(amt)>0 ? Math.round(v/parseFloat(amt)*100)+'%' : '0%';
-        });
-        recalc();
-        document.getElementById('budgetPlanForm').scrollIntoView({behavior:'smooth', block:'start'});
-      }).catch(() => { errEl.textContent='Could not load suggestions.'; errEl.classList.remove('d-none'); })
-      .finally(() => { advisorBtn.disabled=false; advisorBtn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Suggest'; });
+  /* Prevent duplicate form submission */
+  const saveBudgetForm = document.getElementById('saveBudgetForm');
+  let formSubmitting = false;
+  saveBudgetForm?.addEventListener('submit', function (e) {
+    if (formSubmitting) { e.preventDefault(); return; }
+    const total = parseFloat(totalInput?.value) || 0;
+    let alloc = 0;
+    CATS.forEach(c => { alloc += parseFloat(document.getElementById('alloc_' + c)?.value) || 0; });
+    if (alloc > total + 0.005) { e.preventDefault(); return; }
+    formSubmitting = true;
+    const btn = document.getElementById('saveBudgetBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Saving…'; }
   });
 
-  // Auto-suggest when amount + period are filled
-  const amtInput = document.getElementById('advisorAmount');
-  if (amtInput) {
-    amtInput.addEventListener('change', function () {
-      if (parseFloat(this.value) > 0) advisorBtn?.click();
+  /* Show coaching message (triggered by Suggest) */
+  function showCoaching(message, followUp) {
+    const panel = document.getElementById('coachingPanel');
+    const msgEl = document.getElementById('coachingMessage');
+    const fupEl = document.getElementById('coachingFollowUp');
+    if (!panel) return;
+    if (msgEl) msgEl.textContent = message || '';
+    if (fupEl) { fupEl.textContent = followUp || ''; fupEl.classList.toggle('d-none', !followUp); }
+    panel.classList.remove('d-none');
+  }
+
+  /* Show per-category reasons */
+  function showReasons(reasons) {
+    CATS.forEach(cat => {
+      const el = document.getElementById('reason_' + cat);
+      if (el && reasons && reasons[cat]) { el.textContent = reasons[cat]; el.classList.remove('d-none'); }
     });
   }
 
-  // Edit plan button
+  /* Smart Suggest button */
+  const advisorBtn = document.getElementById('advisorBtn');
+  const errEl      = document.getElementById('advisorError');
+  const loadEl     = document.getElementById('advisorLoading');
+
+  function doSuggest() {
+    const amt = document.getElementById('advisorAmount')?.value;
+    const per = document.getElementById('advisorPeriod')?.value || 'weekly';
+    if (!amt || parseFloat(amt) <= 0) {
+      if (errEl) { errEl.textContent = 'Enter a valid allowance amount.'; errEl.classList.remove('d-none'); }
+      return;
+    }
+    if (errEl)  errEl.classList.add('d-none');
+    if (loadEl) loadEl.classList.remove('d-none');
+    if (advisorBtn) { advisorBtn.disabled = true; advisorBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Loading…'; }
+
+    post('{% url "budget_suggest_smart_ajax" %}', { amount: amt, period: per })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          if (errEl) { errEl.textContent = data.error; errEl.classList.remove('d-none'); }
+          return;
+        }
+        document.getElementById('budgetPlanForm').classList.remove('d-none');
+        document.getElementById('budgetPlanId').value = '';
+        if (totalInput) totalInput.value = parseFloat(amt).toFixed(2);
+        document.getElementById('budgetPeriodHidden').value  = per;
+        document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase() + per.slice(1);
+        document.getElementById('budgetAllowanceIdHidden').value = document.getElementById('advisorAllowanceId')?.value || '';
+
+        CATS.forEach(c => {
+          const v   = data[c] || 0;
+          const inp = document.getElementById('alloc_' + c);
+          if (inp) inp.value = v.toFixed(2);
+          const sEl = document.getElementById('sugg_' + c);
+          if (sEl) {
+            const pct = parseFloat(amt) > 0 ? Math.round(v / parseFloat(amt) * 100) : 0;
+            sEl.textContent = '₱' + v.toFixed(2) + ' (' + pct + '%)';
+          }
+        });
+
+        if (data.category_colors) { Object.assign(CAT_COLORS, data.category_colors); applyColors(); }
+        if (data.coaching_message) showCoaching(data.coaching_message, data.coaching_followup);
+        if (data.reasons) showReasons(data.reasons);
+
+        recalc();
+        document.getElementById('budgetPlanForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      })
+      .catch(() => { if (errEl) { errEl.textContent = 'Could not load suggestions. Try again.'; errEl.classList.remove('d-none'); } })
+      .finally(() => {
+        if (loadEl) loadEl.classList.add('d-none');
+        if (advisorBtn) { advisorBtn.disabled = false; advisorBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Suggest'; }
+      });
+  }
+
+  advisorBtn?.addEventListener('click', doSuggest);
+
+  /* Auto-suggest on amount change (debounced) */
+  let suggestTimer = null;
+  document.getElementById('advisorAmount')?.addEventListener('input', function () {
+    clearTimeout(suggestTimer);
+    if (parseFloat(this.value) > 0) suggestTimer = setTimeout(doSuggest, 700);
+  });
+  document.getElementById('advisorPeriod')?.addEventListener('change', function () {
+    document.getElementById('budgetPeriodHidden').value  = this.value;
+    document.getElementById('budgetPeriodDisplay').value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
+    const amt = document.getElementById('advisorAmount')?.value;
+    if (amt && parseFloat(amt) > 0) doSuggest();
+  });
+
+  /* Edit existing plan (from Active Budget header) */
   function loadPlan(btn) {
     document.getElementById('budgetPlanForm').classList.remove('d-none');
     document.getElementById('budgetPlanId').value = btn.dataset.planId || '';
-    if (totalInput) totalInput.value = Math.round(parseFloat(btn.dataset.total || 0));
+    if (totalInput) totalInput.value = parseFloat(btn.dataset.total || 0).toFixed(2);
     const per = btn.dataset.period || 'weekly';
-    document.getElementById('budgetPeriodHidden').value = per;
-    document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase()+per.slice(1);
-    if (document.getElementById('advisorPeriod')) document.getElementById('advisorPeriod').value = per;
-    if (document.getElementById('budgetPeriodStart')) document.getElementById('budgetPeriodStart').value = btn.dataset.start||'';
-    if (document.getElementById('budgetAllowanceIdHidden')) document.getElementById('budgetAllowanceIdHidden').value = btn.dataset.allowance||'';
-    CATS.forEach(c => { const inp=document.getElementById('alloc_'+c); if(inp) inp.value=Math.round(parseFloat(btn.dataset[c]||0)); });
+    document.getElementById('budgetPeriodHidden').value  = per;
+    document.getElementById('budgetPeriodDisplay').value = per.charAt(0).toUpperCase() + per.slice(1);
+    if (document.getElementById('advisorPeriod'))      document.getElementById('advisorPeriod').value = per;
+    if (document.getElementById('budgetPeriodStart'))  document.getElementById('budgetPeriodStart').value = btn.dataset.start || '';
+    if (document.getElementById('budgetAllowanceIdHidden')) document.getElementById('budgetAllowanceIdHidden').value = btn.dataset.allowance || '';
+    if (document.getElementById('budgetPlanName'))     document.getElementById('budgetPlanName').value = btn.dataset.name || '';
+    CATS.forEach(c => {
+      const inp = document.getElementById('alloc_' + c);
+      if (inp) inp.value = parseFloat(btn.dataset[c] || 0).toFixed(2);
+    });
     recalc();
-    document.getElementById('budgetPlanForm').scrollIntoView({behavior:'smooth', block:'start'});
+    document.getElementById('smartPlannerCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  document.querySelectorAll('.edit-plan-btn').forEach(b => b.addEventListener('click', () => loadPlan(b)));
+  /* Wire both edit-plan-btn (active budget header) and load-plan-btn (saved plans) */
+  document.querySelectorAll('.edit-plan-btn, .load-plan-btn').forEach(b => b.addEventListener('click', () => loadPlan(b)));
 
-  // Period selector sync
-  document.getElementById('advisorPeriod')?.addEventListener('change', function () {
-    document.getElementById('budgetPeriodHidden').value = this.value;
-    document.getElementById('budgetPeriodDisplay').value = this.value.charAt(0).toUpperCase()+this.value.slice(1);
+  /* Rename modal — pre-fill fields */
+  document.getElementById('renamePlanModal')?.addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    if (!btn) return;
+    document.getElementById('renamePlanId').value  = btn.dataset.planId  || '';
+    document.getElementById('renamePlanName').value = btn.dataset.planName || '';
+  });
+
+  /* ─────────────────────────────────────────────────────────
+     INTEGRATED BUDGET ADVICE (inside Smart Budget Planner)
+     ───────────────────────────────────────────────────────── */
+  let activePlannerCoachBtn = null;
+
+  function renderBreakdown(breakdown, container) {
+    if (!container) return;
+    container.innerHTML = '';
+    breakdown.forEach(b => {
+      const statusClass = b.status === 'over' ? 'bt-cat-over' : b.status === 'near' ? 'bt-cat-near' : '';
+      const col = document.createElement('div');
+      col.className = 'col-sm-6 col-md-4';
+      col.innerHTML =
+        '<div class="bt-breakdown-card ' + statusClass + '">'
+        + '<div class="d-flex justify-content-between align-items-center mb-1">'
+        +   '<span class="fw-600" style="font-size:.82rem;">' + b.label + '</span>'
+        +   (b.status === 'over'
+              ? '<span class="badge bg-danger-lt" style="font-size:.65rem;">Over</span>'
+              : b.status === 'near'
+              ? '<span class="badge bg-warning-lt" style="font-size:.65rem;">Near limit</span>'
+              : '')
+        + '</div>'
+        + '<div class="d-flex justify-content-between text-muted mb-1" style="font-size:.72rem;">'
+        +   '<span>Spent: <strong>₱' + (b.spent || 0).toFixed(2) + '</strong></span>'
+        +   '<span>Planned: ₱' + (b.planned || 0).toFixed(2) + '</span>'
+        + '</div>'
+        + (b.planned > 0
+          ? '<div class="progress" style="height:4px;">'
+            + '<div class="progress-bar '
+            + (b.status === 'over' ? 'bg-danger' : b.status === 'near' ? 'bg-warning' : 'bg-primary')
+            + '" style="width:' + Math.min(100, b.pct || 0) + '%"></div>'
+            + '</div>'
+          : '')
+        + '</div>';
+      container.appendChild(col);
+    });
+  }
+
+  document.querySelectorAll('.planner-coach-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const intent  = this.dataset.intent;
+      const period  = document.getElementById('plannerAdvicePeriod')?.value || 'weekly';
+      const loadDiv = document.getElementById('plannerAdviceLoading');
+      const resDiv  = document.getElementById('plannerAdviceResult');
+
+      /* Highlight active button */
+      if (activePlannerCoachBtn) activePlannerCoachBtn.classList.remove('btn-secondary');
+      this.classList.add('btn-secondary');
+      activePlannerCoachBtn = this;
+
+      if (loadDiv) loadDiv.classList.remove('d-none');
+      if (resDiv)  resDiv.classList.add('d-none');
+
+      /* Pass current planner allocations if populated */
+      const planData = { intent, period };
+      const totalVal = parseFloat(totalInput?.value);
+      if (totalVal > 0) planData['amount'] = totalVal;
+      CATS.forEach(c => {
+        const v = parseFloat(document.getElementById('alloc_' + c)?.value) || 0;
+        if (v > 0) planData['alloc_' + c] = v;
+      });
+
+      post('{% url "planner_advice_ajax" %}', planData)
+        .then(r => r.json())
+        .then(data => {
+          const msgEl  = document.getElementById('plannerAdviceMessage');
+          const fupEl  = document.getElementById('plannerAdviceFollowUp');
+          const suggEl = document.getElementById('plannerAdviceSuggestions');
+          const suggLi = document.getElementById('plannerAdviceSuggList');
+          const brkEl  = document.getElementById('plannerAdviceBreakdown');
+          const brkLi  = document.getElementById('plannerAdviceBreakList');
+
+          if (msgEl) msgEl.textContent = data.message || 'No advice available.';
+
+          if (fupEl) { fupEl.textContent = data.follow_up || ''; fupEl.classList.toggle('d-none', !data.follow_up); }
+
+          /* Suggestions */
+          if (suggLi) suggLi.innerHTML = '';
+          const hasSugg = data.suggestions && data.suggestions.length > 0;
+          if (suggEl) suggEl.classList.toggle('d-none', !hasSugg);
+          if (hasSugg && suggLi) {
+            data.suggestions.forEach(s => {
+              const d = document.createElement('div');
+              d.className = 'bt-coach-sugg d-flex align-items-start gap-2';
+              d.innerHTML = '<i class="fa-solid fa-arrow-right text-primary mt-1 flex-shrink-0" style="font-size:.75rem;"></i>'
+                          + '<span style="font-size:.8rem;">' + (s.text || '') + '</span>';
+              suggLi.appendChild(d);
+            });
+          }
+
+          /* Spending breakdown */
+          const hasBrkd = data.breakdown && data.breakdown.length > 0;
+          if (brkEl) brkEl.classList.toggle('d-none', !hasBrkd);
+          if (hasBrkd && brkLi) renderBreakdown(data.breakdown, brkLi);
+
+          if (loadDiv) loadDiv.classList.add('d-none');
+          if (resDiv)  resDiv.classList.remove('d-none');
+        })
+        .catch(() => {
+          const msgEl = document.getElementById('plannerAdviceMessage');
+          if (msgEl) msgEl.textContent = 'Could not load advice. Please try again.';
+          if (loadDiv) loadDiv.classList.add('d-none');
+          if (resDiv)  resDiv.classList.remove('d-none');
+        });
+    });
+  });
+
+  /* Re-query when period selector changes */
+  document.getElementById('plannerAdvicePeriod')?.addEventListener('change', function () {
+    if (activePlannerCoachBtn) activePlannerCoachBtn.dispatchEvent(new Event('click'));
   });
 });
 </script>

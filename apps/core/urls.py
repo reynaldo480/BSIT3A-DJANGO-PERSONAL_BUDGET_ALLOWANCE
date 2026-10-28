@@ -20,7 +20,9 @@ urlpatterns = [
 
     # Budget suggestion AJAX
     path('budget/suggest/', views.budget_suggest_ajax, name='budget_suggest_ajax'),
+    path('budget/suggest/smart/', views.budget_suggest_smart_ajax, name='budget_suggest_smart_ajax'),
     path('budget/insights/', views.budget_insights_ajax, name='budget_insights_ajax'),
+    path('planner/advice/', views.planner_advice_ajax, name='planner_advice_ajax'),
 
     # Allowance AJAX
     path('allowance/save/', views.allowance_save_ajax, name='allowance_save_ajax'),

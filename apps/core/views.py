@@ -36,9 +36,27 @@ BUDGET_CAT_LABELS = {
     'savings': 'Savings', 'emergency_fund': 'Emergency Fund', 'other': 'Other',
 }
 EXPENSE_TO_BUDGET_CAT = {
-    'food': 'food', 'transportation': 'transportation',
-    'school_supplies': 'school_expenses', 'personal_needs': 'personal_needs', 'other': 'other',
+    'food':            'food',
+    'transportation':  'transportation',
+    'school_expenses': 'school_expenses',
+    'school_supplies': 'school_expenses',   # legacy backward-compat
+    'personal_needs':  'personal_needs',
+    'savings':         'savings',
+    'emergency_fund':  'emergency_fund',
+    'other':           'other',
 }
+
+# Valid expense categories — single source of truth, kept in sync with ExpenseItem.CATEGORY_CHOICES
+EXPENSE_CATEGORIES = [
+    ('food',            'Food'),
+    ('transportation',  'Transportation'),
+    ('school_expenses', 'School Expenses'),
+    ('personal_needs',  'Personal Needs'),
+    ('savings',         'Savings'),
+    ('emergency_fund',  'Emergency Fund'),
+    ('other',           'Other'),
+]
+VALID_EXPENSE_CATS = {c[0] for c in EXPENSE_CATEGORIES}
 DEFAULT_SPLITS = {
     'daily':   {'food': Decimal('0.40'), 'transportation': Decimal('0.30'),
                 'school_expenses': Decimal('0.10'), 'personal_needs': Decimal('0.05'),
@@ -368,22 +386,52 @@ def my_allowance(request):
             aid = _pk(request.POST.get('budget_allowance_id'))
             linked = Allowance.objects.filter(id=aid, user=user, is_deleted=False).first() if aid else None
             bpk = _pk(request.POST.get('budget_id'))
+            plan_name = request.POST.get('budget_plan_name', '').strip()[:120]
             with db_transaction.atomic():
                 bp = AllowanceBudget.objects.filter(id=bpk, user=user).first() if bpk else \
                      AllowanceBudget.objects.filter(user=user, period=period, period_start=period_start).first()
                 if bp:
                     bp.total_amount = total_amount; bp.period_end = period_end
                     bp.allowance = linked; bp.notes = request.POST.get('budget_notes','')
+                    bp.name = plan_name
                     for cat in AllowanceBudget.BUDGET_CATEGORIES: setattr(bp, cat, cats[cat])
                     bp.save()
+                    action_word = 'updated'
                 else:
                     bp = AllowanceBudget.objects.create(
                         user=user, period=period, period_start=period_start, period_end=period_end,
-                        total_amount=total_amount, allowance=linked,
+                        total_amount=total_amount, allowance=linked, name=plan_name,
                         notes=request.POST.get('budget_notes',''), **cats)
-                _log(user, 'budget_saved', f'Budget plan saved: {bp.get_period_display()} ₱{total_amount:.2f}',
+                    action_word = 'saved'
+                _log(user, 'budget_saved', f'Budget plan {action_word}: {bp.display_name()} ₱{total_amount:.2f}',
                      None, today, category='Budget Plan')
-            messages.success(request, 'Budget plan saved. No money was deducted.')
+            messages.success(request, f'Budget plan {action_word}: {bp.display_name()} — No money was deducted.')
+            return redirect('my_allowance')
+
+        elif action == 'archive_budget':
+            bpk = _pk(request.POST.get('budget_id'))
+            bp = AllowanceBudget.objects.filter(id=bpk, user=user).first()
+            if bp:
+                bp.is_archived = not bp.is_archived
+                bp.save(update_fields=['is_archived', 'updated_at'])
+                verb = 'archived' if bp.is_archived else 'unarchived'
+                messages.success(request, f'Plan {verb}: {bp.display_name()}')
+            else:
+                messages.error(request, 'Plan not found.')
+            return redirect('my_allowance')
+
+        elif action == 'rename_budget':
+            bpk = _pk(request.POST.get('budget_id'))
+            new_name = request.POST.get('budget_plan_name', '').strip()[:120]
+            bp = AllowanceBudget.objects.filter(id=bpk, user=user).first()
+            if bp and new_name:
+                bp.name = new_name
+                bp.save(update_fields=['name', 'updated_at'])
+                messages.success(request, f'Plan renamed to: {new_name}')
+            elif not new_name:
+                messages.error(request, 'Plan name cannot be empty.')
+            else:
+                messages.error(request, 'Plan not found.')
             return redirect('my_allowance')
 
         elif action == 'delete_budget':
@@ -396,13 +444,25 @@ def my_allowance(request):
     weekly_allowance = allowances_active.filter(date_received__gte=ws, date_received__lte=we).aggregate(t=Sum('amount'))['t'] or Decimal('0')
     balance = _balance(user)
     today_allowance = allowances_active.filter(date_received=today).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    active_plan = AllowanceBudget.objects.filter(user=user, period_start__lte=today, period_end__gte=today).order_by('-created_at').first()
+    active_plan = AllowanceBudget.objects.filter(user=user, is_archived=False, period_start__lte=today, period_end__gte=today).order_by('-created_at').first()
     bt = _budget_tracking(active_plan, user) if active_plan else []
     active_plan_total_spent = sum(r['spent'] for r in bt) if bt else Decimal('0')
     daily_equiv = active_plan.daily_amount() if active_plan and active_plan.period != 'daily' else None
-    plans_with_tracking = [{'plan': bp, 'tracking': _budget_tracking(bp, user),
-                             'total_spent': sum(r['spent'] for r in _budget_tracking(bp, user))}
-                            for bp in budget_plans]
+
+    # Build plans_with_tracking — active (non-archived) plans only, avoid double call
+    budget_plans = AllowanceBudget.objects.filter(user=user, is_archived=False).order_by('-period_start')
+    plans_with_tracking = []
+    for bp in budget_plans:
+        tracking = _budget_tracking(bp, user)
+        plans_with_tracking.append({
+            'plan': bp,
+            'tracking': tracking,
+            'total_spent': sum(r['spent'] for r in tracking),
+        })
+
+    # Archived plans shown separately
+    archived_plans = AllowanceBudget.objects.filter(user=user, is_archived=True).order_by('-period_start')
+
     return render(request, 'my_allowance.html', {
         'allowances': allowances_active, 'allowances_deleted': allowances_deleted,
         'weekly_allowance': weekly_allowance, 'today': today,
@@ -411,6 +471,7 @@ def my_allowance(request):
         'active_plan': active_plan, 'budget_tracking': bt,
         'daily_equiv': daily_equiv, 'active_plan_total_spent': active_plan_total_spent,
         'budget_plans': budget_plans, 'plans_with_tracking': plans_with_tracking,
+        'archived_plans': archived_plans,
         'budget_cat_labels': BUDGET_CAT_LABELS, 'budget_categories': AllowanceBudget.BUDGET_CATEGORIES,
     })
 
@@ -513,26 +574,174 @@ def expense_items_page(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        # ── Add new expense item ───────────────────────────────────────────
         if action == 'add_expense_item':
             name = request.POST.get('name','').strip()
-            if not name: messages.error(request, 'Item name is required.'); return redirect('expense_items')
-            cat   = request.POST.get('category','other')
-            qty   = _dec(request.POST.get('quantity','1'))
+            if not name:
+                messages.error(request, 'Item name is required.')
+                return redirect('expense_items')
+            # Normalise category — map legacy school_supplies → school_expenses
+            raw_cat = request.POST.get('category', 'other')
+            cat = EXPENSE_TO_BUDGET_CAT.get(raw_cat, 'other') if raw_cat not in VALID_EXPENSE_CATS else raw_cat
+            qty   = _dec(request.POST.get('quantity', '1'))
             price = _dec(request.POST.get('price_per_item'))
             date  = _date(request.POST.get('date'))
-            if qty is None or qty < 1: messages.error(request, 'Quantity must be at least 1.'); return redirect('expense_items')
-            if price is None or price <= 0: messages.error(request, 'Price must be greater than 0.'); return redirect('expense_items')
-            if date is None: messages.error(request, 'A valid date is required.'); return redirect('expense_items')
-            qty = int(qty); total = Decimal(str(qty)) * price
+            if qty is None or qty < 1:
+                messages.error(request, 'Quantity must be at least 1.')
+                return redirect('expense_items')
+            if price is None or price <= 0:
+                messages.error(request, 'Price must be greater than 0.')
+                return redirect('expense_items')
+            if date is None:
+                messages.error(request, 'A valid date is required.')
+                return redirect('expense_items')
+            # Accept requested status; default to planned
+            req_status = request.POST.get('status', 'planned')
+            if req_status not in ('planned', 'purchased', 'cancelled'):
+                req_status = 'planned'
+            qty = int(qty)
+            total = Decimal(str(qty)) * price
+
+            # If immediately purchased, check balance first
+            if req_status == 'purchased':
+                bal = _balance(user)
+                if total > bal:
+                    messages.error(request, f'Insufficient balance. You have ₱{bal:.2f} but need ₱{total:.2f}.')
+                    return redirect('expense_items')
+
             with db_transaction.atomic():
                 item = ExpenseItem.objects.create(
                     name=name, category=cat, quantity=qty,
                     price_per_item=price, total_cost=total,
-                    status='planned', date=date, balance_deducted=False, user=user)
-                _log(user, 'expense_planned', f'Expense planned: {name}',
-                     None, date, category=item.get_category_display(),
-                     related_expense_id=item.id, original_description=name, original_amount=total)
-            messages.success(request, f'{name} added to your expense list.')
+                    status=req_status,
+                    balance_deducted=(req_status == 'purchased'),
+                    date=date, user=user,
+                )
+                if req_status == 'purchased':
+                    _record_txn(user, 'purchase', item.name, item.get_category_display(),
+                                -item.total_cost, item.date)
+                    _log(user, 'expense_purchased', f'Purchase: {item.name}',
+                         -item.total_cost, item.date, category=item.get_category_display(),
+                         related_expense_id=item.id, original_description=name, original_amount=total)
+                elif req_status == 'cancelled':
+                    _log(user, 'expense_cancelled', f'Expense cancelled on add: {item.name}',
+                         None, date, category=item.get_category_display(),
+                         related_expense_id=item.id, status='reversed',
+                         original_description=name, original_amount=total)
+                else:
+                    _log(user, 'expense_planned', f'Expense planned: {name}',
+                         None, date, category=item.get_category_display(),
+                         related_expense_id=item.id, original_description=name, original_amount=total)
+            messages.success(request, f'{name} added ({item.get_status_display()}).')
+            return redirect('expense_items')
+
+        # ── Edit existing expense item ─────────────────────────────────────
+        elif action == 'edit_expense_item':
+            ipk = _pk(request.POST.get('item_id'))
+            item = ExpenseItem.objects.filter(id=ipk, user=user).first() if ipk else None
+            if item is None:
+                messages.error(request, 'Expense item not found.')
+                return redirect('expense_items')
+
+            name = request.POST.get('name', '').strip()
+            if not name:
+                messages.error(request, 'Item name is required.')
+                return redirect('expense_items')
+            raw_cat = request.POST.get('category', 'other')
+            cat = EXPENSE_TO_BUDGET_CAT.get(raw_cat, 'other') if raw_cat not in VALID_EXPENSE_CATS else raw_cat
+            qty   = _dec(request.POST.get('quantity', '1'))
+            price = _dec(request.POST.get('price_per_item'))
+            date  = _date(request.POST.get('date'))
+            if qty is None or qty < 1:
+                messages.error(request, 'Quantity must be at least 1.')
+                return redirect('expense_items')
+            if price is None or price <= 0:
+                messages.error(request, 'Price must be greater than 0.')
+                return redirect('expense_items')
+            if date is None:
+                messages.error(request, 'A valid date is required.')
+                return redirect('expense_items')
+
+            new_status = request.POST.get('status', item.status)
+            if new_status not in ('planned', 'purchased', 'cancelled'):
+                new_status = item.status
+
+            qty = int(qty)
+            new_total = Decimal(str(qty)) * price
+            old_status = item.status
+            old_deducted = item.balance_deducted
+            old_total = item.total_cost
+            today = timezone.now().date()
+
+            with db_transaction.atomic():
+                # Determine if financial change is needed
+                # Case A: was purchased (deducted) → now cancelled/planned → refund old amount
+                if old_deducted and new_status in ('cancelled', 'planned'):
+                    item.status = new_status
+                    item.balance_deducted = False
+                    item.name = name; item.category = cat
+                    item.quantity = qty; item.price_per_item = price; item.total_cost = new_total
+                    item.date = date
+                    item.save()
+                    _record_txn(user, 'refund', f'Refund (edit): {name}',
+                                item.get_category_display(), old_total, today)
+                    _log(user, 'refund', f'Refund on edit/cancel: {name}',
+                         old_total, today, category=item.get_category_display(),
+                         related_expense_id=item.id, original_description=name,
+                         original_amount=old_total)
+
+                # Case B: was NOT deducted → now purchased → deduct new amount
+                elif not old_deducted and new_status == 'purchased':
+                    bal = _balance(user)
+                    if new_total > bal:
+                        messages.error(request, f'Insufficient balance. You have ₱{bal:.2f} but need ₱{new_total:.2f}.')
+                        return redirect('expense_items')
+                    item.status = 'purchased'
+                    item.balance_deducted = True
+                    item.name = name; item.category = cat
+                    item.quantity = qty; item.price_per_item = price; item.total_cost = new_total
+                    item.date = date
+                    item.save()
+                    _record_txn(user, 'purchase', f'{name}',
+                                item.get_category_display(), -new_total, date)
+                    _log(user, 'expense_purchased', f'Purchase (via edit): {name}',
+                         -new_total, date, category=item.get_category_display(),
+                         related_expense_id=item.id, original_description=name,
+                         original_amount=new_total)
+
+                # Case C: was purchased → still purchased, amount changed → adjust
+                elif old_deducted and new_status == 'purchased':
+                    diff = new_total - old_total   # positive = more spent, negative = less
+                    if diff != Decimal('0'):
+                        bal = _balance(user)
+                        if diff > 0 and diff > bal:
+                            messages.error(request, f'Insufficient balance for the increased amount (₱{diff:.2f} more needed).')
+                            return redirect('expense_items')
+                        item.name = name; item.category = cat
+                        item.quantity = qty; item.price_per_item = price; item.total_cost = new_total
+                        item.date = date
+                        item.save()
+                        # Record correction
+                        _record_txn(user, 'correction', f'Edit correction: {name}',
+                                    item.get_category_display(), -diff, today)
+                        _log(user, 'correction', f'Expense edited: {name} (amount adjusted by ₱{diff:.2f})',
+                             -diff, today, category=item.get_category_display(),
+                             related_expense_id=item.id)
+                    else:
+                        # Same amount, just update meta fields
+                        item.name = name; item.category = cat
+                        item.quantity = qty; item.price_per_item = price
+                        item.date = date
+                        item.save()
+
+                # Case D: no financial change — update metadata only
+                else:
+                    item.name = name; item.category = cat
+                    item.quantity = qty; item.price_per_item = price; item.total_cost = new_total
+                    item.date = date; item.status = new_status
+                    item.save()
+
+            messages.success(request, f'{name} updated.')
             return redirect('expense_items')
 
         elif action == 'mark_purchased':
@@ -587,7 +796,10 @@ def expense_items_page(request):
             return redirect('expense_items')
 
     return render(request, 'expense_items.html', {
-        'expense_items': expense_items, 'balance': _balance(user), 'today': timezone.now().date(),
+        'expense_items': expense_items,
+        'balance': _balance(user),
+        'today': timezone.now().date(),
+        'expense_categories': EXPENSE_CATEGORIES,
     })
 
 # ── Goals ──────────────────────────────────────────────────────────────────
@@ -1024,3 +1236,210 @@ def _build_ai_insights(user, view_period: str, today) -> dict:
     result['period_start'] = ps
     result['period_end'] = pe
     return result
+
+
+# ── Conversational Planner AJAX ────────────────────────────────────────────
+
+@login_required(login_url='login')
+@require_POST
+def planner_advice_ajax(request):
+    """
+    POST params
+    -----------
+    intent : one of help_budget | daily_limit | save_more | afford_goal | review_spending
+    amount : total allowance (optional override; defaults to user's total active allowance)
+    period : daily | weekly | monthly (default weekly)
+    food, transportation, school_expenses, personal_needs,
+    savings, emergency_fund, other  (optional planned allocations)
+
+    Returns JSON with keys: intent, message, follow_up, suggestions, breakdown
+    """
+    from apps.core.ai_engine import ConversationalPlanner, CATEGORY_LABELS
+
+    user   = request.user
+    intent = request.POST.get('intent', 'help_budget')
+    period = request.POST.get('period', 'weekly')
+    if period not in ('daily', 'weekly', 'monthly'):
+        period = 'weekly'
+
+    # Allowance total
+    explicit_amount = _dec(request.POST.get('amount'))
+    if explicit_amount and explicit_amount > 0:
+        total = explicit_amount
+    else:
+        total = (
+            Allowance.objects.filter(user=user, is_deleted=False)
+            .aggregate(t=Sum('amount'))['t'] or Decimal('0')
+        )
+
+    # Available balance
+    balance = _balance(user)
+
+    # Planned allocations: from POST if present, else from active plan
+    cats = list(CATEGORY_LABELS.keys())
+    allocations = {}
+    has_post_alloc = any(request.POST.get(f'alloc_{c}') for c in cats)
+    if has_post_alloc:
+        for cat in cats:
+            v = _dec(request.POST.get(f'alloc_{cat}', '0'), Decimal('0'))
+            allocations[cat] = max(Decimal('0'), v)
+    else:
+        today = timezone.now().date()
+        ps, pe = _period_dates(period, today)
+        active = (
+            AllowanceBudget.objects
+            .filter(user=user, period=period, period_start__lte=today, period_end__gte=today)
+            .order_by('-created_at').first()
+        )
+        if active:
+            allocations = active.get_allocations()
+
+    # Spending history for the current period
+    today  = timezone.now().date()
+    ps, pe = _period_dates(period, today)
+    history = _spending_by_cat(user, ps, pe)
+
+    # Savings goals
+    goals_data = []
+    for g in SavingsGoal.objects.filter(user=user, status='in_progress'):
+        dl_days = None
+        if g.deadline:
+            delta = (g.deadline - today).days
+            dl_days = max(0, delta)
+        goals_data.append({
+            'name':          g.name,
+            'target':        g.target_amount,
+            'current':       g.current_amount,
+            'deadline_days': dl_days,
+        })
+
+    planner = ConversationalPlanner(
+        total_allowance=total,
+        period=period,
+        remaining_balance=balance,
+        allocations=allocations,
+        spending_history=history,
+        savings_goals=goals_data,
+    )
+
+    response = planner.respond(intent)
+
+    # Decimal → float for JSON
+    def _jsonify(v):
+        if isinstance(v, Decimal):
+            return float(v)
+        if isinstance(v, dict):
+            return {k: _jsonify(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [_jsonify(x) for x in v]
+        return v
+
+    return JsonResponse(_jsonify(response))
+
+
+# ── Smart suggest with coaching message ────────────────────────────────────
+
+@login_required(login_url='login')
+@require_POST
+def budget_suggest_smart_ajax(request):
+    """
+    Enhanced suggest endpoint that returns allocation splits PLUS a coaching
+    intro message explaining the reasoning.
+
+    POST params: amount, period
+    Returns: same as budget_suggest_ajax PLUS 'coaching_message', 'reasons',
+             'category_colors', 'category_icons'
+    """
+    from apps.core.ai_engine import (
+        ConversationalPlanner, CATEGORY_LABELS,
+        CATEGORY_ICONS, CATEGORY_COLORS,
+    )
+
+    amount = _dec(request.POST.get('amount'))
+    period = request.POST.get('period', 'weekly')
+    if period not in ('daily', 'weekly', 'monthly'):
+        period = 'weekly'
+
+    if amount is None or amount <= 0:
+        return JsonResponse({'error': 'Enter an amount greater than 0.'}, status=400)
+
+    user    = request.user
+    balance = _balance(user)
+    today   = timezone.now().date()
+    ps, pe  = _period_dates(period, today)
+    history = _spending_by_cat(user, ps, pe)
+
+    goals_data = []
+    for g in SavingsGoal.objects.filter(user=user, status='in_progress'):
+        dl_days = None
+        if g.deadline:
+            delta = (g.deadline - today).days
+            dl_days = max(0, delta)
+        goals_data.append({
+            'name': g.name,
+            'target': g.target_amount,
+            'current': g.current_amount,
+            'deadline_days': dl_days,
+        })
+
+    # Get GOAL-AWARE splits from the ConversationalPlanner._smart_split
+    # instead of the fixed-percentage _suggest().
+    planner = ConversationalPlanner(
+        total_allowance=amount,
+        period=period,
+        remaining_balance=balance,
+        allocations={},
+        spending_history=history,
+        savings_goals=goals_data,
+    )
+    splits_raw = planner._smart_split()   # goal-aware Decimal splits
+    splits = {k: v for k, v in splits_raw.items()}
+
+    # Build coaching message
+    coaching = planner.respond('help_budget')
+
+    # Build per-category reasons (goal-aware)
+    reasons = {}
+    for cat in CATEGORY_LABELS:
+        v = splits.get(cat, Decimal('0'))
+        # Enhance savings reason with goal context
+        if cat == 'savings' and goals_data:
+            active_goals = [g for g in goals_data
+                            if Decimal(str(g.get('current', 0))) < Decimal(str(g.get('target', 0)))]
+            if active_goals:
+                g = active_goals[0]
+                remaining_goal = max(Decimal('0'),
+                    Decimal(str(g['target'])) - Decimal(str(g['current'])))
+                pct = int(v / amount * 100) if amount > Decimal('0') else 0
+                goal_note = (
+                    f"Suggested ₱{v:.2f} ({pct}%) toward savings. "
+                    f"Your goal '{g['name']}' needs ₱{remaining_goal:.2f} more. "
+                )
+                if g.get('deadline_days') is not None:
+                    dl = g['deadline_days']
+                    if dl == 0:
+                        goal_note += "Deadline is today!"
+                    else:
+                        goal_note += f"Deadline in {dl} day{'s' if dl != 1 else ''}."
+                else:
+                    goal_note += "No deadline set — save at your own pace."
+                reasons[cat] = goal_note
+            else:
+                reasons[cat] = planner._reason(cat, v, amount)
+        else:
+            reasons[cat] = planner._reason(cat, v, amount)
+
+    result = {
+        'total':   float(amount),
+        'period':  period,
+        'labels':  BUDGET_CAT_LABELS,
+        'coaching_message': coaching.get('message', ''),
+        'coaching_followup': coaching.get('follow_up', ''),
+        'category_colors': CATEGORY_COLORS,
+        'category_icons':  CATEGORY_ICONS,
+        'reasons': reasons,
+    }
+    for cat, v in splits.items():
+        result[cat] = float(v)
+
+    return JsonResponse(result)

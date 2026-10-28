@@ -86,8 +86,10 @@ class ExpenseItem(models.Model):
     CATEGORY_CHOICES = [
         ('food',            'Food'),
         ('transportation',  'Transportation'),
-        ('school_supplies', 'School Supplies'),
+        ('school_expenses', 'School Expenses'),
         ('personal_needs',  'Personal Needs'),
+        ('savings',         'Savings'),
+        ('emergency_fund',  'Emergency Fund'),
         ('other',           'Other'),
     ]
     STATUS_CHOICES = [
@@ -404,6 +406,8 @@ class AllowanceBudget(models.Model):
     ]
 
     allowance     = models.ForeignKey(Allowance, on_delete=models.CASCADE, related_name='budget_plans_v2', null=True, blank=True)
+    name          = models.CharField(max_length=120, blank=True, default='',
+                                     help_text='Optional user-assigned plan name')
     period        = models.CharField(max_length=10, choices=PERIOD_CHOICES, default='weekly')
     period_start  = models.DateField()
     period_end    = models.DateField()
@@ -416,6 +420,8 @@ class AllowanceBudget(models.Model):
     emergency_fund= models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     other         = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     notes         = models.TextField(blank=True)
+    is_archived   = models.BooleanField(default=False, db_index=True,
+                                        help_text='Archived plans are hidden from the active planner')
     user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='allowance_budgets')
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
@@ -425,7 +431,14 @@ class AllowanceBudget(models.Model):
         ordering = ['-period_start']
 
     def __str__(self):
-        return f'{self.get_period_display()} budget ₱{self.total_amount} ({self.period_start})'
+        label = self.name or f'{self.get_period_display()} budget'
+        return f'{label} ₱{self.total_amount} ({self.period_start})'
+
+    def display_name(self):
+        """Human-readable plan name for templates."""
+        if self.name:
+            return self.name
+        return f'{self.get_period_display()} Plan – {self.period_start.strftime("%b %d, %Y")}'
 
     @property
     def total_allocated(self):

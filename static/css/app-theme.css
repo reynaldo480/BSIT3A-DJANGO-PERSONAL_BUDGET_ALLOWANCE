@@ -1083,3 +1083,123 @@ body {
   background: var(--bt-surface-2);
   border-color: var(--bt-border);
 }
+
+
+/* ================================================================
+   BudgetTrack — Smart Planner & Conversational Coach UI
+   Added: coaching bubble, allocation table, coach cards
+   ================================================================ */
+
+/* ── Coaching bubble ─────────────────────────────────────── */
+.bt-coaching-bubble {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: linear-gradient(135deg,
+    rgba(var(--bt-primary-rgb), 0.05) 0%,
+    var(--bt-surface-2) 100%);
+  border: 1px solid rgba(var(--bt-primary-rgb), 0.15);
+  border-radius: var(--bt-radius-md);
+  padding: 1rem 1.1rem;
+}
+.bt-coaching-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bt-warning), #f97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: .95rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(247,144,9,.30);
+}
+.bt-coaching-avatar--blue {
+  background: linear-gradient(135deg, var(--bt-primary), #6366f1);
+  box-shadow: 0 2px 8px rgba(59,91,219,.30);
+}
+.bt-coaching-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Allocation table ────────────────────────────────────── */
+.bt-alloc-table {
+  border: 1px solid var(--bt-border);
+  border-radius: var(--bt-radius-md);
+  overflow: hidden;
+  background: var(--bt-surface);
+}
+.bt-alloc-header {
+  background: var(--bt-surface-2);
+  border-bottom: 1px solid var(--bt-border);
+  color: var(--bt-text-muted);
+}
+.bt-alloc-row {
+  border-bottom: 1px solid var(--bt-border);
+  transition: background .12s;
+}
+.bt-alloc-row:hover { background: var(--bt-surface-2); }
+.bt-alloc-progress { padding-bottom: .35rem; background: var(--bt-surface); }
+.bt-alloc-footer {
+  background: var(--bt-surface-2);
+  border-top: 2px solid var(--bt-border-strong);
+}
+.bt-cat-dot {
+  width: .65rem;
+  height: .65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: .18rem;
+}
+.bt-cat-reason {
+  color: var(--bt-text-muted);
+}
+
+/* ── Coach action buttons ────────────────────────────────── */
+.coach-btn {
+  border-radius: var(--bt-radius-full) !important;
+  font-size: .8rem !important;
+  padding: .35rem .85rem !important;
+  transition: all .15s;
+}
+.coach-btn:hover, .coach-btn.btn-primary {
+  background: rgba(var(--bt-primary-rgb), 0.12) !important;
+  border-color: rgba(var(--bt-primary-rgb), 0.35) !important;
+}
+
+/* ── Coach suggestions ───────────────────────────────────── */
+.bt-coach-sugg {
+  padding: .55rem .75rem;
+  background: var(--bt-surface-2);
+  border: 1px solid var(--bt-border);
+  border-radius: var(--bt-radius-sm);
+  font-size: .82rem;
+  color: var(--bt-text-secondary);
+}
+
+/* ── Spending breakdown cards ────────────────────────────── */
+.bt-breakdown-card {
+  padding: .75rem .9rem;
+  border: 1px solid var(--bt-border);
+  border-radius: var(--bt-radius-sm);
+  background: var(--bt-surface-2);
+  height: 100%;
+}
+.bt-breakdown-card.bt-cat-over  { border-left: 3px solid var(--bt-danger);  }
+.bt-breakdown-card.bt-cat-near  { border-left: 3px solid var(--bt-warning); }
+
+/* Dark mode */
+[data-bs-theme="dark"] .bt-coaching-bubble {
+  background: linear-gradient(135deg,
+    rgba(var(--bt-primary-rgb), 0.08) 0%,
+    var(--bt-surface-2) 100%);
+}
+[data-bs-theme="dark"] .bt-alloc-table,
+[data-bs-theme="dark"] .bt-alloc-row,
+[data-bs-theme="dark"] .bt-coach-sugg,
+[data-bs-theme="dark"] .bt-breakdown-card {
+  border-color: var(--bt-border);
+  background: var(--bt-surface-2);
+}

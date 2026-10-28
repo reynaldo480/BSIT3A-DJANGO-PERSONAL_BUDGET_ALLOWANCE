@@ -10,10 +10,12 @@
         <h2 class="page-title">Expenses</h2>
       </div>
       <div class="col-auto d-flex gap-2 align-items-center">
-        <span class="badge {% if balance > 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}" style="font-size:.88rem;padding:.35rem .85rem;">
+        <span class="badge {% if balance > 0 %}bg-success-lt{% else %}bg-danger-lt{% endif %}"
+              style="font-size:.88rem;padding:.35rem .85rem;">
           Balance: ₱{{ balance|floatformat:2 }}
         </span>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+        <button type="button" class="btn btn-primary"
+                data-bs-toggle="modal" data-bs-target="#addExpenseModal">
           <i class="fa-solid fa-plus me-1"></i>Add Expense
         </button>
       </div>
@@ -21,29 +23,32 @@
   </div>
 
   <!-- Summary mini-cards -->
-  {% with planned_items=expense_items|length %}
   <div class="row g-3 mb-4">
-    {% with purchased=expense_items %}
+    {% with total_items=expense_items|length %}
+    {% with purchased_items=expense_items %}
     <div class="col-sm-3">
       <div class="bt-period-card">
-        <div class="pc-label">Available</div>
-        <div class="pc-value {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">₱{{ balance|floatformat:2 }}</div>
+        <div class="pc-label">Available Balance</div>
+        <div class="pc-value {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">
+          ₱{{ balance|floatformat:2 }}
+        </div>
       </div>
     </div>
     <div class="col-sm-3">
       <div class="bt-period-card">
         <div class="pc-label">Total Items</div>
-        <div class="pc-value text-primary">{{ expense_items|length }}</div>
+        <div class="pc-value text-primary">{{ total_items }}</div>
       </div>
     </div>
-    {% endwith %}
+    {% endwith %}{% endwith %}
   </div>
-  {% endwith %}
 
-  <!-- Table -->
+  <!-- Expense list -->
   <div class="card">
     <div class="card-header">
-      <div class="card-title"><i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Expense Items</div>
+      <div class="card-title">
+        <i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Expense Items
+      </div>
     </div>
     <div class="table-responsive">
       <table class="table table-vcenter">
@@ -65,24 +70,54 @@
             <td style="font-weight:{% if item.status == 'purchased' %}600{% else %}400{% endif %};">
               {{ item.name }}
             </td>
-            <td><span class="badge bg-secondary-lt">{{ item.get_category_display }}</span></td>
+            <td>
+              <span class="badge bg-secondary-lt">{{ item.get_category_display }}</span>
+            </td>
             <td class="text-center">{{ item.quantity }}</td>
-            <td class="text-end" style="font-size:.78rem;color:var(--bt-text-muted);">₱{{ item.price_per_item|floatformat:2 }}</td>
-            <td class="text-end" style="font-weight:600;font-variant-numeric:tabular-nums;">₱{{ item.total_cost|floatformat:2 }}</td>
+            <td class="text-end" style="font-size:.78rem;color:var(--bt-text-muted);">
+              ₱{{ item.price_per_item|floatformat:2 }}
+            </td>
+            <td class="text-end" style="font-weight:600;font-variant-numeric:tabular-nums;">
+              ₱{{ item.total_cost|floatformat:2 }}
+            </td>
             <td>
               {% if item.status == 'planned' %}
-                <span class="status-chip status-planned"><i class="fa-regular fa-clock"></i>Planned</span>
+                <span class="status-chip status-planned">
+                  <i class="fa-regular fa-clock"></i>Planned
+                </span>
               {% elif item.status == 'purchased' %}
-                <span class="status-chip status-purchased"><i class="fa-solid fa-check"></i>Purchased</span>
+                <span class="status-chip status-purchased">
+                  <i class="fa-solid fa-check"></i>Purchased
+                </span>
               {% else %}
-                <span class="status-chip status-cancelled"><i class="fa-solid fa-xmark"></i>Cancelled</span>
+                <span class="status-chip status-cancelled">
+                  <i class="fa-solid fa-xmark"></i>Cancelled
+                </span>
               {% endif %}
             </td>
-            <td style="font-size:.78rem;color:var(--bt-text-muted);white-space:nowrap;">{{ item.date|date:"M d, Y" }}</td>
+            <td style="font-size:.78rem;color:var(--bt-text-muted);white-space:nowrap;">
+              {{ item.date|date:"M d, Y" }}
+            </td>
             <td>
               <div class="d-flex gap-1 justify-content-center">
+                <!-- Edit button (all statuses) -->
+                <button type="button"
+                        class="btn btn-ghost-secondary btn-sm btn-icon edit-expense-btn"
+                        data-item-id="{{ item.id }}"
+                        data-name="{{ item.name }}"
+                        data-category="{{ item.category }}"
+                        data-quantity="{{ item.quantity }}"
+                        data-price="{{ item.price_per_item }}"
+                        data-date="{{ item.date|date:'Y-m-d' }}"
+                        data-status="{{ item.status }}"
+                        data-balance-deducted="{{ item.balance_deducted|yesno:'true,false' }}"
+                        title="Edit">
+                  <i class="fa-solid fa-pen" style="font-size:.8rem;color:var(--bt-primary);"></i>
+                </button>
+
                 {% if item.status == 'planned' %}
-                <form method="post" style="display:inline;" onsubmit="return confirm('Mark \'{{ item.name }}\' as Purchased and deduct ₱{{ item.total_cost|floatformat:2 }}?');">
+                <form method="post" style="display:inline;"
+                      onsubmit="return confirm('Mark \'{{ item.name }}\' as Purchased and deduct ₱{{ item.total_cost|floatformat:2 }}?');">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="mark_purchased">
                   <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -90,7 +125,8 @@
                     <i class="fa-solid fa-check"></i>
                   </button>
                 </form>
-                <form method="post" style="display:inline;" onsubmit="return confirm('Cancel this planned item?');">
+                <form method="post" style="display:inline;"
+                      onsubmit="return confirm('Delete this planned item?');">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="delete_item">
                   <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -98,8 +134,10 @@
                     <i class="fa-solid fa-trash" style="font-size:.8rem;color:var(--bt-danger);"></i>
                   </button>
                 </form>
+
                 {% elif item.status == 'purchased' %}
-                <form method="post" style="display:inline;" onsubmit="return confirm('Refund \'{{ item.name }}\'? ₱{{ item.total_cost|floatformat:2 }} will be returned.');">
+                <form method="post" style="display:inline;"
+                      onsubmit="return confirm('Refund \'{{ item.name }}\'? ₱{{ item.total_cost|floatformat:2 }} will be returned.');">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="cancel_item">
                   <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -107,8 +145,10 @@
                     <i class="fa-solid fa-rotate-left me-1"></i>Refund
                   </button>
                 </form>
+
                 {% else %}
-                <form method="post" style="display:inline;" onsubmit="return confirm('Delete this cancelled item?');">
+                <form method="post" style="display:inline;"
+                      onsubmit="return confirm('Delete this cancelled item?');">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="delete_item">
                   <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -137,63 +177,79 @@
   </div>
 </div>
 
-<!-- Add Expense Modal -->
+<!-- ── Add Expense Modal ──────────────────────────────────────────────── -->
 <div class="modal modal-blur fade" id="addExpenseModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Add Expense Item</h5>
+        <h5 class="modal-title">
+          <i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Add Expense Item
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form method="post">
+      <form method="post" id="addExpenseForm">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_expense_item">
         <div class="modal-body">
+          <div class="alert alert-info py-2 mb-3" style="font-size:.8rem;">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            <strong>Planned</strong> items are saved without deducting money.
+            Select <strong>Purchased</strong> to deduct immediately.
+          </div>
           <div class="row g-3">
             <div class="col-md-7">
-              <label class="form-label">Item Name</label>
-              <input type="text" name="name" class="form-control" placeholder="e.g. Biscuit, Notebook, Fare" required>
+              <label class="form-label">Item Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control"
+                     placeholder="e.g. Notebook, Fare, Lunch" required>
             </div>
             <div class="col-md-5">
               <label class="form-label">Category</label>
               <select name="category" class="form-select">
-                <option value="food">Food</option>
-                <option value="transportation">Transportation</option>
-                <option value="school_supplies">School Supplies</option>
-                <option value="personal_needs">Personal Needs</option>
-                <option value="other" selected>Other</option>
+                {% for val, label in expense_categories %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
               </select>
             </div>
             <div class="col-md-4">
               <label class="form-label">Quantity</label>
-              <input type="number" name="quantity" class="form-control" value="1" min="1" step="1" id="expQty" required>
+              <input type="number" name="quantity" class="form-control"
+                     value="1" min="1" step="1" id="addExpQty" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Price per Item (₱)</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input type="number" name="price_per_item" class="form-control" placeholder="0.00" min="0.01" step="0.01" id="expPrice" required>
+                <input type="number" name="price_per_item" class="form-control"
+                       placeholder="0.00" min="0.01" step="0.01"
+                       id="addExpPrice" required>
               </div>
             </div>
             <div class="col-md-4">
               <label class="form-label">Total Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input type="text" id="expTotal" class="form-control" placeholder="0.00" readonly style="background:var(--bt-surface-2);">
+                <input type="text" id="addExpTotal" class="form-control"
+                       placeholder="0.00" readonly style="background:var(--bt-surface-2);">
               </div>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Date</label>
-              <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+              <label class="form-label">Date <span class="text-danger">*</span></label>
+              <input type="date" name="date" class="form-control"
+                     value="{{ today|date:'Y-m-d' }}" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Status</label>
-              <input type="text" class="form-control" value="Planned (No money deducted yet)" readonly style="background:var(--bt-surface-2);font-size:.78rem;">
+              <select name="status" class="form-select" id="addExpStatus">
+                <option value="planned" selected>Planned — no money deducted yet</option>
+                <option value="purchased">Purchased — deduct from balance now</option>
+                <option value="cancelled">Cancelled — item will not be purchased</option>
+              </select>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-ghost-secondary btn-sm"
+                  data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary btn-sm">
             <i class="fa-solid fa-plus me-1"></i>Add to List
           </button>
@@ -203,20 +259,159 @@
   </div>
 </div>
 
+<!-- ── Edit Expense Modal ─────────────────────────────────────────────── -->
+<div class="modal modal-blur fade" id="editExpenseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fa-solid fa-pen me-2 text-primary"></i>Edit Expense Item
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="editExpenseForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit_expense_item">
+        <input type="hidden" name="item_id" id="editItemId">
+        <div class="modal-body">
+          <div id="editWarningPurchased" class="alert alert-warning py-2 mb-3 d-none"
+               style="font-size:.8rem;">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+            This item was already purchased. Changing status to Planned or Cancelled
+            will process a refund and return the money to your balance.
+          </div>
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label">Item Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" id="editExpName" class="form-control" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Category</label>
+              <select name="category" id="editExpCategory" class="form-select">
+                {% for val, label in expense_categories %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Quantity</label>
+              <input type="number" name="quantity" id="editExpQty" class="form-control"
+                     min="1" step="1" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Price per Item (₱)</label>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                <input type="number" name="price_per_item" id="editExpPrice"
+                       class="form-control" min="0.01" step="0.01" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Total Cost</label>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                <input type="text" id="editExpTotal" class="form-control"
+                       placeholder="0.00" readonly style="background:var(--bt-surface-2);">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date <span class="text-danger">*</span></label>
+              <input type="date" name="date" id="editExpDate" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <select name="status" id="editExpStatus" class="form-select">
+                <option value="planned">Planned — no money deducted</option>
+                <option value="purchased">Purchased — deduct from balance</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary btn-sm"
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-floppy-disk me-1"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% block extra_js %}
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const qty = document.getElementById('expQty');
-    const price = document.getElementById('expPrice');
-    const total = document.getElementById('expTotal');
-    function calc() {
-      const q = parseFloat(qty.value) || 0;
-      const p = parseFloat(price.value) || 0;
-      total.value = (q * p).toFixed(2);
+document.addEventListener('DOMContentLoaded', function () {
+  /* ── Add expense modal: live total calc ── */
+  const addQty   = document.getElementById('addExpQty');
+  const addPrice = document.getElementById('addExpPrice');
+  const addTotal = document.getElementById('addExpTotal');
+  function calcAdd() {
+    const q = parseFloat(addQty?.value) || 0;
+    const p = parseFloat(addPrice?.value) || 0;
+    if (addTotal) addTotal.value = (q * p).toFixed(2);
+  }
+  addQty?.addEventListener('input', calcAdd);
+  addPrice?.addEventListener('input', calcAdd);
+
+  /* ── Edit expense modal: pre-fill + live total calc ── */
+  const editQty    = document.getElementById('editExpQty');
+  const editPrice  = document.getElementById('editExpPrice');
+  const editTotal  = document.getElementById('editExpTotal');
+  const editWarn   = document.getElementById('editWarningPurchased');
+  const editStatus = document.getElementById('editExpStatus');
+
+  function calcEdit() {
+    const q = parseFloat(editQty?.value) || 0;
+    const p = parseFloat(editPrice?.value) || 0;
+    if (editTotal) editTotal.value = (q * p).toFixed(2);
+  }
+  editQty?.addEventListener('input', calcEdit);
+  editPrice?.addEventListener('input', calcEdit);
+
+  /* Show refund warning when changing a purchased item's status */
+  editStatus?.addEventListener('change', function () {
+    const wasDeducted = document.getElementById('editItemId')?.dataset.balanceDeducted === 'true';
+    if (editWarn) {
+      editWarn.classList.toggle('d-none',
+        !(wasDeducted && (this.value === 'planned' || this.value === 'cancelled')));
     }
-    qty && qty.addEventListener('input', calc);
-    price && price.addEventListener('input', calc);
   });
+
+  /* Wire edit buttons */
+  document.querySelectorAll('.edit-expense-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const d = this.dataset;
+      const idEl   = document.getElementById('editItemId');
+      const nameEl = document.getElementById('editExpName');
+      const catEl  = document.getElementById('editExpCategory');
+      const qtyEl  = document.getElementById('editExpQty');
+      const priceEl= document.getElementById('editExpPrice');
+      const dateEl = document.getElementById('editExpDate');
+      const statusEl=document.getElementById('editExpStatus');
+
+      if (idEl)    { idEl.value = d.itemId; idEl.dataset.balanceDeducted = d.balanceDeducted; }
+      if (nameEl)  nameEl.value  = d.name;
+      if (catEl)   catEl.value   = d.category;
+      if (qtyEl)   qtyEl.value   = d.quantity;
+      if (priceEl) priceEl.value = d.price;
+      if (dateEl)  dateEl.value  = d.date;
+      if (statusEl)statusEl.value= d.status;
+
+      calcEdit();
+
+      /* Show warning if was purchased */
+      if (editWarn) {
+        editWarn.classList.toggle('d-none', d.balanceDeducted !== 'true');
+      }
+
+      const modal = bootstrap.Modal.getOrCreate(
+        document.getElementById('editExpenseModal'));
+      modal.show();
+    });
+  });
+});
 </script>
 {% endblock %}
 {% endblock %}

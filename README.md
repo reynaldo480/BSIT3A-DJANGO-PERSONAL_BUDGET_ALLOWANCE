@@ -5,18 +5,7 @@
 **Reynaldo Ilustrisimo | Rico Gasataya | Jun Gengos**
 *10/7/2026 — 100 Points*
 
----
-
-> **Print Formatting Note:** This document follows the BSIT Concept Paper Guidelines
-> (Times New Roman 12 pt, double-spaced, 1.5-inch left margin, 1-inch top/right/bottom
-> margins, 0.5-inch first-line paragraph indent). Apply these settings when printing from
-> a word processor. Markdown cannot enforce print-specific typography.
-
----
-
-## INTRODUCTION
-
-### Background of the Project
+--- Background of the Project
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Managing a personal allowance is a critical life skill, particularly for students and young
 adults who receive a fixed amount of money on a daily, weekly, or monthly basis. Without a

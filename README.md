@@ -5,7 +5,7 @@
 **Reynaldo Ilustrisimo | Rico Gasataya | Jun Gengos**
 *10/7/2026 — 100 Points*
 
---- Background of the Project
+### Background of the Project
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Managing a personal allowance is a critical life skill, particularly for students and young
 adults who receive a fixed amount of money on a daily, weekly, or monthly basis. Without a
